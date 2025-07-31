@@ -90,8 +90,8 @@ class TestConfigurator(unittest.TestCase):
             ["BTO diff", "20"],
             ["STC diff", "100"],
             ["N Trades", "1"],
-            ["Since", "05/15/2023"],
-            ["Last", "05/15/2023"],
+            ["Since", "2023/05/15"],
+            ["Last", "2023/05/15"],
         ]
 
         for k, v, exp in zip(h, data[0], expected, strict=False):

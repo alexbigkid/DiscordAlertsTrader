@@ -1,9 +1,13 @@
 import os
+import sys
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pandas as pd
+
+
+sys.path.append(os.path.dirname(__file__))
 from mock_discord_message import make_message
 
 from DiscordAlertsTrader.configurator import cfg
@@ -32,7 +36,7 @@ class TestDiscordBot(unittest.TestCase):
         port = bot.tracker.portfolio.loc[0]
         self.assertEqual(port["isOpen"], 1)
         self.assertEqual(port["Price"], 1.0)
-        self.assertEqual(port["Symbol"], "AI_120923C25")
+        self.assertEqual(port["Symbol"], "AI_120925C25")
         self.assertEqual(port["Trader"], f"{message.author.name}#{message.author.discriminator}")
         self.assertEqual(port["Qty"], 5)
         # sell
@@ -80,7 +84,7 @@ class TestDiscordBot(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            queue_prints.put.call_args_list[1][0][0], [f"\t BTO 5 AI 25c {expdate} 1 ", "green"]
+            queue_prints.put.call_args_list[1][0][0], [f"\t BTO 5 AI 25c {expdate} @1 ", "green"]
         )
 
         # Delete the generated file

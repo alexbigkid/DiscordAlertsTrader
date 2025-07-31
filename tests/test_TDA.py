@@ -2,12 +2,20 @@ import unittest
 from unittest.mock import MagicMock
 
 import pandas as pd
-from td.client import TDClient
-from td.orders import Order
-
-from DiscordAlertsTrader.brokerages.TDA_api import TDA
 
 
+try:
+    from td.client import TDClient
+    from td.orders import Order
+
+    from DiscordAlertsTrader.brokerages.TDA_api import TDA
+
+    TD_AVAILABLE = True
+except ImportError:
+    TD_AVAILABLE = False
+
+
+@unittest.skipUnless(TD_AVAILABLE, "TD module not available")
 class TestTDA(unittest.TestCase):
     def setUp(self):
         self.api_key = "test_api_key"

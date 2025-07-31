@@ -8,6 +8,28 @@ from DiscordAlertsTrader.configurator import cfg
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
 
+class MockAuthor:
+    def __init__(self, id, name, discriminator):
+        self.id = id
+        self.name = name
+        self.discriminator = discriminator
+
+
+class MockChannel:
+    def __init__(self, id):
+        self.id = id
+
+
+class CustomMessage:
+    def __init__(
+        self, created_at, channel_id, author_id, author_name, author_discriminator, content
+    ):
+        self.created_at = created_at
+        self.channel = MockChannel(channel_id)
+        self.author = MockAuthor(author_id, author_name, author_discriminator)
+        self.content = content
+
+
 def serialize_message(message):
     serialized = {
         "created_at": str(message.created_at),

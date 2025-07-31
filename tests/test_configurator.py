@@ -22,7 +22,11 @@ class TestConfigurator(unittest.TestCase):
 
     def test_cfg_options_set(self):
         self.assertTrue(cfg["general"]["BROKERAGE"].lower() in ["", "tda", "webull", "etrade"])
-        self.assertTrue(cfg["order_configs"]["default_bto_qty"] in ["buy_one", "trade_capital"])
+        # default_bto_qty is a dictionary, check the default value
+        import ast
+
+        default_bto_qty = ast.literal_eval(cfg["order_configs"]["default_bto_qty"])
+        self.assertTrue(default_bto_qty["default"] in ["buy_one", "trade_capital"])
 
 
 if __name__ == "__main__":

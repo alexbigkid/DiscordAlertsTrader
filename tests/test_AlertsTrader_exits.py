@@ -7,8 +7,15 @@ from unittest.mock import create_autospec
 from colorama import init
 
 from DiscordAlertsTrader.alerts_trader import AlertsTrader
-from DiscordAlertsTrader.brokerages.TDA_api import TDA
 from DiscordAlertsTrader.configurator import cfg
+
+
+try:
+    from DiscordAlertsTrader.brokerages.TDA_api import TDA
+
+    TD_AVAILABLE = True
+except ImportError:
+    TD_AVAILABLE = False
 from DiscordAlertsTrader.message_parser import parse_trade_alert
 
 
@@ -17,6 +24,7 @@ init(autoreset=True)
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
 
+@unittest.skipUnless(TD_AVAILABLE, "TD module not available")
 class TestAlertsTrader(unittest.TestCase):
     def prepare(self):
         # make port files

@@ -1,16 +1,33 @@
 import os
 import queue
+import sys
 import unittest
 from datetime import datetime
 from unittest.mock import create_autospec
 
 from colorama import init
+
+
+sys.path.append(os.path.dirname(__file__))
 from mock_discord_message import make_message
 
 from DiscordAlertsTrader.alerts_trader import AlertsTrader
 from DiscordAlertsTrader.brokerages.eTrade_api import eTrade
-from DiscordAlertsTrader.brokerages.TDA_api import TDA
-from DiscordAlertsTrader.brokerages.weBull_api import weBull
+
+
+try:
+    from DiscordAlertsTrader.brokerages.weBull_api import weBull
+
+    WEBULL_AVAILABLE = True
+except ImportError:
+    WEBULL_AVAILABLE = False
+
+try:
+    from DiscordAlertsTrader.brokerages.TDA_api import TDA
+
+    TD_AVAILABLE = True
+except ImportError:
+    TD_AVAILABLE = False
 from DiscordAlertsTrader.configurator import cfg
 from DiscordAlertsTrader.message_parser import parse_trade_alert
 
@@ -20,6 +37,7 @@ init(autoreset=True)
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
 
+@unittest.skipUnless(TD_AVAILABLE and WEBULL_AVAILABLE, "TD or WebBull modules not available")
 class TestAlertsTrader(unittest.TestCase):
     def tracker_order(self, brokerage):
         """Test that the TDA order is sent correctly and trader works as expected"""

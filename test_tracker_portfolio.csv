@@ -1,2 +1,0 @@
-Date,Symbol,Trader,Channel,isOpen,Asset,Type,Price,Qty,Price-actual,Prices,Prices-actual,Avged,PnL,PnL-actual,PnL$,PnL$-actual,STC-Qty,STC-Price,STC-Price-actual,STC-Prices,STC-Prices-actual,STC-Date,TrailStats
-2023-05-15 10:02:47.409000,NFLX_051923C345,test#3069,chan,0,option,BTO,10,5,12,,,,20.0,100.0,200.0,1200.0,1.0,12.0,24.0,12.0,24.0,2023-05-16 12:39:37.884000,
