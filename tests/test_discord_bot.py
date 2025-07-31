@@ -74,7 +74,7 @@ class TestDiscordBot(unittest.TestCase):
         bot.new_msg_acts(message, from_disc=False)
 
         # Example assertions for queue_prints
-        print("here:", queue_prints.put.call_args_list)
+        # print("here:", queue_prints.put.call_args_list)
         self.assertEqual(queue_prints.put.call_count, 3)
         self.assertEqual(
             queue_prints.put.call_args_list[0][0][0],
@@ -114,7 +114,7 @@ class TestDiscordBot(unittest.TestCase):
         bot.new_msg_acts(message, from_disc=False)
 
         # Example assertions for queue_prints
-        print("here:", queue_prints.put.call_args_list)
+        # print("here:", queue_prints.put.call_args_list)
         self.assertEqual(queue_prints.put.call_count, 2)
         self.assertEqual(
             queue_prints.put.call_args_list[0][0][0],

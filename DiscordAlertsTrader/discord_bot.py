@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 import time
@@ -6,6 +7,9 @@ from datetime import date, datetime, timezone
 import discord  # this is discord.py-self package not discord
 import pandas as pd
 from colorama import Fore, init
+
+
+logger = logging.getLogger(__name__)
 
 from DiscordAlertsTrader.alerts_tracker import AlertsTracker
 from DiscordAlertsTrader.alerts_trader import AlertsTrader
@@ -288,7 +292,7 @@ class DiscordBot(discord.Client):
         self.queue_prints.put(
             [f"\n{shrt_date} {msg['Channel']}: \n\t{msg['Author']}: {msg['Content']} ", "blue"]
         )
-        print(Fore.BLUE + f"{shrt_date} \t {msg['Author']}: {msg['Content']} ")
+        logger.debug(Fore.BLUE + f"{shrt_date} \t {msg['Author']}: {msg['Content']} ")
 
         pars, order = parse_trade_alert(msg["Content"])
         if pars is None:
@@ -315,7 +319,7 @@ class DiscordBot(discord.Client):
                 except ValueError:
                     str_msg = f"Option date is wrong: {order['expDate']}"
                     self.queue_prints.put([f"\t {str_msg}", "green"])
-                    print(Fore.GREEN + f"\t {str_msg}")
+                    logger.exception(Fore.GREEN + f"\t {str_msg}")
                     msg["Parsed"] = str_msg
                     if self.chn_hist.get(chn) is not None:
                         self.chn_hist[chn] = pd.concat(
@@ -331,7 +335,7 @@ class DiscordBot(discord.Client):
                 if order["dte"] < 0:
                     str_msg = f"Option date in the past: {order['expDate']}"
                     self.queue_prints.put([f"\t {str_msg}", "green"])
-                    print(Fore.GREEN + f"\t {str_msg}")
+                    logger.error(Fore.GREEN + f"\t {str_msg}")
                     msg["Parsed"] = str_msg
                     if self.chn_hist.get(chn) is not None:
                         self.chn_hist[chn] = pd.concat(
@@ -345,7 +349,7 @@ class DiscordBot(discord.Client):
             order["Trader"], order["Date"] = msg["Author"], msg["Date"]
             order_date = datetime.strptime(order["Date"], "%Y-%m-%d %H:%M:%S.%f")
             date_diff = abs(datetime.now() - order_date)
-            print(f"time difference is {date_diff.total_seconds()}")
+            logger.warning("time difference is %s", date_diff.total_seconds())
 
             live_alert = True if date_diff.seconds < 90 else False
             str_msg = pars
@@ -356,9 +360,9 @@ class DiscordBot(discord.Client):
                     if quote > 0:
                         order["price_actual"] = quote
                     if order["price"] == 0:
-                        str_msg = "ALerted price is 0, skipping alert "
+                        str_msg = "Alerted price is 0, skipping alert "
                         self.queue_prints.put([f"\t {str_msg}", "green"])
-                        print(Fore.GREEN + f"\t {str_msg}")
+                        logger.warning(Fore.GREEN + f"\t {str_msg}")
                         return
                     act_diff = max(
                         ((quote - order["price"]) / order["price"]),
@@ -368,7 +372,7 @@ class DiscordBot(discord.Client):
                     if abs(act_diff) > 1 and order.get("action") == "BTO":
                         str_msg = f"Alerted price is {act_diff} times larger than current price of {quote}, skipping alert"
                         self.queue_prints.put([f"\t {str_msg}", "green"])
-                        print(Fore.GREEN + f"\t {str_msg}")
+                        logger.warning(Fore.GREEN + f"\t {str_msg}")
                         msg["Parsed"] = str_msg
                         if self.chn_hist.get(chn) is not None:
                             self.chn_hist[chn] = pd.concat(
@@ -381,7 +385,7 @@ class DiscordBot(discord.Client):
 
                 str_msg += f" Actual:{quote}, diff {round(act_diff * 100)}%"
             self.queue_prints.put([f"\t {str_msg}", "green"])
-            print(Fore.GREEN + f"\t {str_msg}")
+            logger.warning(Fore.GREEN + f"\t {str_msg}")
             # Tracker
             if chn != "GUI_user":
                 track_out = self.tracker.trade_alert(order, live_alert, chn)
@@ -415,7 +419,7 @@ class DiscordBot(discord.Client):
                 and channel not in ["GUI_user", "GUI_both"]
             ):
                 str_msg = "STC not accepted by config options: DO_STC_TRADES = False"
-                print(Fore.GREEN + str_msg)
+                logger.warning(Fore.GREEN + str_msg)
                 self.queue_prints.put([str_msg, "", "green"])
                 return False, order
             else:
@@ -425,7 +429,7 @@ class DiscordBot(discord.Client):
                         cfg["order_configs"]["min_opt_price"]
                     ):
                         str_msg = f"Option price is too small as per config: {order['price']}"
-                        print(Fore.GREEN + str_msg)
+                        logger.warning(Fore.GREEN + str_msg)
                         self.queue_prints.put([str_msg, "", "green"])
                         return False, order
                 return True, order
@@ -459,7 +463,7 @@ class DiscordBot(discord.Client):
                     return True, order
                 else:
                     str_msg = f"STO {order['dte']} DTE smaller than max in config: {self.cfg['shorting']['max_dte']}, order aborted"
-                    print(Fore.RED + str_msg)
+                    logger.warning(Fore.RED + str_msg)
                     self.queue_prints.put([str_msg, "", "red"])
                     return False, order
 

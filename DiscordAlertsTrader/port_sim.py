@@ -1,3 +1,4 @@
+import logging
 from datetime import date, timedelta
 
 import matplotlib.pyplot as plt
@@ -7,10 +8,12 @@ import pandas as pd
 from DiscordAlertsTrader.message_parser import parse_symbol
 
 
+logger = logging.getLogger(__name__)
+
 try:
     from thetadata import DataType, DateRange, OptionReqType, OptionRight
 except ImportError:
-    print("thetadata not installed, will not be able to get historical quotes")
+    logger.info("thetadata not installed, will not be able to get historical quotes")
 
 
 def get_timestamp(row):

@@ -11,7 +11,7 @@ DiscordAlertsTrader is a Python package that automates trading based on Discord 
 ### Main Components
 
 - **GUI Entry Point**: `gui.py` - Main application entry with PySimpleGUIQt interface
-- **Discord Integration**: `discord_bot.py` - Monitors Discord channels for trading alerts  
+- **Discord Integration**: `discord_bot.py` - Monitors Discord channels for trading alerts
 - **Message Processing**: `message_parser.py` - Parses trading signals from Discord messages
 - **Trade Execution**: `alerts_trader.py` - Handles trade execution logic and position management
 - **Portfolio Tracking**: `alerts_tracker.py` - Tracks analyst performance and portfolio state
@@ -21,7 +21,7 @@ DiscordAlertsTrader is a Python package that automates trading based on Discord 
 
 Multiple brokerage APIs are supported in `brokerages/`:
 - **TradeStation API**: `tradestation_api.py` with async/sync clients in `tradestation/client/`
-- **E*Trade API**: `eTrade_api.py` 
+- **E*Trade API**: `eTrade_api.py`
 - **Webull API**: `weBull_api.py` with detailed implementation in `webull/`
 - **IBKR API**: `ibkr_api.py`
 - **Schwab API**: `schwab_api.py`
@@ -43,7 +43,7 @@ make install
 # Or: uv sync
 
 # Install with debug dependency group (includes build tools)
-make install-debug  
+make install_debug
 # Or: uv sync --group debug
 
 # Copy example configuration
@@ -67,23 +67,28 @@ uv run python -m DiscordAlertsTrader.gui
 The project uses Python's built-in `unittest` framework.
 
 ```bash
-# Run all tests
+# Run all tests (quiet mode - suppresses debug output)
 make test
+
+# Run all tests (verbose mode - shows all output)
+make test_v
 # Or: uv run python -m unittest discover tests -v
 
 # Run specific test categories
-make test-alerts    # AlertsTracker/AlertsTrader tests
-make test-parser    # Message parsing tests
-make test-gui       # GUI component tests
-make test-tda       # TDA API tests
-make test-config    # Configuration tests
-make test-calc      # ROI calculation tests
+make test_alerts    # AlertsTracker/AlertsTrader tests
+make test_parser    # Message parsing tests
+make test_gui       # GUI component tests
+make test_tda       # TDA API tests
+make test_config    # Configuration tests
+make test_calc      # ROI calculation tests
 ```
+
+**Note**: Some tests require optional dependencies (TDA API, WebBull API) and will be automatically skipped if not available. The quiet mode test runner (`make test`) suppresses debug output and warnings while still showing test results.
 
 ### Development Setup
 ```bash
 # Install with debug dependency group (includes build tools, debugging utilities)
-make install-debug
+make install_debug
 # Or: uv sync --group debug
 
 # Code Quality
@@ -128,14 +133,14 @@ make upload
 The application uses INI-based configuration in `config_example.ini`:
 
 - **[general]**: Core settings including `DO_BTO_TRADES`, `BROKERAGE` selection
-- **[discord]**: Discord token, author subscriptions, channel IDs  
+- **[discord]**: Discord token, author subscriptions, channel IDs
 - **[TDA/eTrade/webull/IBKR]**: Brokerage-specific API credentials
 - **[exits]**: Default exit strategies (PT/SL/TS configurations)
 
 ## Key Data Flows
 
 1. **Alert Processing**: Discord bot receives message → message_parser extracts trade info → alerts_trader executes if conditions met
-2. **Portfolio Management**: alerts_tracker maintains CSV-based portfolio state with real-time price updates  
+2. **Portfolio Management**: alerts_tracker maintains CSV-based portfolio state with real-time price updates
 3. **GUI Updates**: Background threads update GUI tables with trade status and portfolio performance
 
 ## Important Notes

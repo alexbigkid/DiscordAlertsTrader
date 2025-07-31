@@ -1,9 +1,13 @@
 import configparser
 import json
+import logging
 import os
 import os.path as op
 
 import pandas as pd
+
+
+logger = logging.getLogger(__name__)
 
 
 def update_port_cols():
@@ -119,7 +123,7 @@ data_dir = cfg["general"]["data_dir"]
 _, ext = os.path.splitext(data_dir)
 if ext == "":
     cfg["general"]["data_dir"] = os.path.join(package_dir, "..", data_dir)
-    print("full data dir:", cfg["general"]["data_dir"])
+    logger.debug("full data dir: %s", cfg["general"]["data_dir"])
 
 # add path to file names
 for k, v in cfg["portfolio_names"].items():

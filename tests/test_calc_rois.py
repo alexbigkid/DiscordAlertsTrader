@@ -71,7 +71,7 @@ out_6 = calc_roi(
     avgdown=[[1.05, 1]],
     initial_prices=1.5,
 )
-print(out_6)
+# print(out_6)
 assert out_6 == [[1.5, 1.0, -33.33333333333333, -33.33333333333333, 0, 1]]
 
 # Test pt update
@@ -85,7 +85,7 @@ out_7 = calc_roi(
     sl_update=[[1.1, 0.5], [1.2, 0.6]],
     initial_prices=1,
 )
-print(out_7)
+# print(out_7)
 assert out_7 == [[1, 1.0, 0.0, 0.0, 5, 1]]
 
 if __name__ == "__main__":
