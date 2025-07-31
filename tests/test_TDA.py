@@ -3,13 +3,12 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 from td.client import TDClient
-from td.orders import Order, OrderLeg
+from td.orders import Order
 
 from DiscordAlertsTrader.brokerages.TDA_api import TDA
 
 
 class TestTDA(unittest.TestCase):
-
     def setUp(self):
         self.api_key = "test_api_key"
         self.tda = TDA(self.api_key)
@@ -54,31 +53,30 @@ class TestTDA(unittest.TestCase):
         self.tda.session = MagicMock(spec=TDClient)
         self.tda.session.accountId = 12345
         self.tda.session.get_orders.return_value = {
-            'orderStrategyType': 'SINGLE',
-            'status': 'FILLED'
+            "orderStrategyType": "SINGLE",
+            "status": "FILLED",
         }
         order_status, order_info = self.tda.get_order_info(order_id=123)
-        self.assertEqual(order_status, 'FILLED')
-        self.assertEqual(order_info['orderStrategyType'], 'SINGLE')
+        self.assertEqual(order_status, "FILLED")
+        self.assertEqual(order_info["orderStrategyType"], "SINGLE")
 
     def test_get_quotes(self):
         self.tda.session = MagicMock(spec=TDClient)
-        self.tda.session.get_quotes.return_value = {'symbol': 'AAPL', 'price': 150}
-        result = self.tda.get_quotes(symbol='AAPL')
-        self.assertEqual(result, {'symbol': 'AAPL', 'price': 150})
-    
-    
+        self.tda.session.get_quotes.return_value = {"symbol": "AAPL", "price": 150}
+        result = self.tda.get_quotes(symbol="AAPL")
+        self.assertEqual(result, {"symbol": "AAPL", "price": 150})
+
     def test_get_positions_orders(self):
         # Mock TDClient.get_accounts method
         mock_get_accounts = MagicMock()
         mock_get_accounts.return_value = {
-            'securitiesAccount': {
-                'positions': [
+            "securitiesAccount": {
+                "positions": [
                     {
                         "longQuantity": 10,
                         "instrument": {"symbol": "AAPL", "assetType": "EQUITY"},
                         "averagePrice": 150,
-                        "currentDayProfitLoss": 200
+                        "currentDayProfitLoss": 200,
                     }
                 ]
             }
@@ -91,15 +89,17 @@ class TestTDA(unittest.TestCase):
         df_pos, df_ordr = self.tda.get_positions_orders()
 
         expected_df_pos = pd.DataFrame(
-            [{
-                "symbol": "AAPL",
-                "asset": "EQUITY",
-                "type": "long",
-                "Qty": 10,
-                "Avg Price": 150,
-                "PnL": 200,
-                "PnL %": 200 / (150 * 10)
-            }],
+            [
+                {
+                    "symbol": "AAPL",
+                    "asset": "EQUITY",
+                    "type": "long",
+                    "Qty": 10,
+                    "Avg Price": 150,
+                    "PnL": 200,
+                    "PnL %": 200 / (150 * 10),
+                }
+            ],
             dtype=object,
             columns=["symbol", "asset", "type", "Qty", "Avg Price", "PnL", "PnL %"],
         ).astype({"Qty": "object", "Avg Price": "object", "PnL": "object", "PnL %": "float64"})
@@ -108,25 +108,25 @@ class TestTDA(unittest.TestCase):
         self.assertTrue(df_ordr.empty)
 
     def test_make_BTO_lim_order(self):
-        symbol = 'AAPL'
+        symbol = "AAPL"
         Qty = 10
         price = 150
 
         new_order = self.tda.make_BTO_lim_order(Symbol=symbol, Qty=Qty, price=price)
 
         self.assertIsInstance(new_order, Order)
-        self.assertEqual(new_order._grab_order()['orderStrategyType'], 'TRIGGER')
-        self.assertEqual(new_order._grab_order()['orderType'], 'LIMIT')
-        self.assertEqual(new_order._grab_order()['session'], 'NORMAL')
-        self.assertEqual(new_order._grab_order()['duration'], 'GOOD_TILL_CANCEL')
-        self.assertEqual(new_order._grab_order()['price'], price)
+        self.assertEqual(new_order._grab_order()["orderStrategyType"], "TRIGGER")
+        self.assertEqual(new_order._grab_order()["orderType"], "LIMIT")
+        self.assertEqual(new_order._grab_order()["session"], "NORMAL")
+        self.assertEqual(new_order._grab_order()["duration"], "GOOD_TILL_CANCEL")
+        self.assertEqual(new_order._grab_order()["price"], price)
 
         self.assertEqual(len(new_order.order_legs_collection), 1)
-        order_leg = new_order.order_legs_collection['order_leg_1']
-        self.assertEqual(order_leg['instruction'], 'BUY')
-        self.assertEqual(order_leg['instrument'], {'assetType': 'EQUITY', 'symbol': symbol})
-        self.assertEqual(order_leg['quantity'], Qty)
+        order_leg = new_order.order_legs_collection["order_leg_1"]
+        self.assertEqual(order_leg["instruction"], "BUY")
+        self.assertEqual(order_leg["instrument"], {"assetType": "EQUITY", "symbol": symbol})
+        self.assertEqual(order_leg["quantity"], Qty)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

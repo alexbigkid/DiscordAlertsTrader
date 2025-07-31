@@ -1,23 +1,26 @@
-import subprocess
-import os.path as op
 import os
-import pandas as pd
-from DiscordAlertsTrader.configurator import cfg
-import pandas as pd
+import os.path as op
+import subprocess
 from datetime import datetime, timedelta
-from thetadata import ThetaClient
-from thetadata import DataType
+
+import pandas as pd
+from thetadata import DataType, ThetaClient
+
+from DiscordAlertsTrader.alerts_tracker import AlertsTracker
+from DiscordAlertsTrader.configurator import cfg
 from DiscordAlertsTrader.marketdata.thetadata_api import ThetaClientAPI
 from DiscordAlertsTrader.message_parser import parse_trade_alert
-from DiscordAlertsTrader.configurator import cfg
-from DiscordAlertsTrader.alerts_tracker import AlertsTracker
+
+
 try:
     from DiscordAlertsTrader.read_hist_msg_mine import parse_hist_msg
 except ImportError:
     from DiscordAlertsTrader.read_hist_msg import parse_hist_msg
 
-from DiscordAlertsTrader.port_sim import get_hist_quotes
 import re
+
+from DiscordAlertsTrader.port_sim import get_hist_quotes
+
 
 # parameters
 use_theta_rest_api = True
@@ -41,8 +44,8 @@ chan_ids = {
     "makeplays": 1164747583638491156,
     "kingmaker": 1152082112032292896,
     "oculus": 1222679083155193867,
-    'diesel': 1107395495460081754,
-    'ddking': 1225020986953437305,
+    "diesel": 1107395495460081754,
+    "ddking": 1225020986953437305,
     "crimson": 1102753361566122064,
     "HH": 1197849899627184149,
     "HH2k": 867390497115209728,
@@ -50,18 +53,19 @@ chan_ids = {
     "gianni": 1209992523083415603,
     "og-alerts": 1207717868716826645,
     "EM": 1126325195301462117,
-    "vader-swings":1235324289222443008,
+    "vader-swings": 1235324289222443008,
     "rough": 989674163331534929,
-    'opccpro': 1125655265312776274,
+    "opccpro": 1125655265312776274,
     "bear": 1221951478621540384,
-    'prophi': 1216951944933933137,
+    "prophi": 1216951944933933137,
     "stb": 959672267929956413,
     "sti": 1175048558639058985,
     "gandalf": 910228981536653342,
     "psa": 1199936454797824010,
     "algoAi": 1237566888062750791,
     "jpm": 1221952610987147284,
-    }
+}
+
 
 def get_timestamp(row):
     date_time = row[DataType.DATE] + timedelta(milliseconds=row[DataType.MS_OF_DAY])
@@ -69,7 +73,6 @@ def get_timestamp(row):
 
 
 def add_past_year(alert, year):
-
     pattern = r"([0-1]?[0-9]\/[0-3]?[0-9])"
     matches = re.findall(pattern, alert)
     current_date = datetime.now()
@@ -105,9 +108,7 @@ def save_or_append_quote(quotes, symbol, path_quotes, overwrite=False):
 
 chan_id = chan_ids[author]
 if not use_theta_rest_api:
-    client = ThetaClient(username=cfg["thetadata"]["username"],
-                        passwd=cfg["thetadata"]["passwd"]
-                        )
+    client = ThetaClient(username=cfg["thetadata"]["username"], passwd=cfg["thetadata"]["passwd"])
     client.connect()
 else:
     client = ThetaClientAPI()
@@ -142,7 +143,7 @@ if op.exists(port_fname) and get_date_after_from_port:
             max_date = max(max_date_stc.tz_localize(None), max_date_bto)
 
         # add 1 second to the max date
-        max_date = max_date + timedelta( seconds=1)
+        max_date = max_date + timedelta(seconds=1)
         max_date = max_date.strftime("%Y-%m-%d %H:%M:%S.%f")
         after = "--after " + str(max_date).replace(" ", "T")
         date_after = str(max_date).replace(" ", "_").replace(":", "_")
@@ -154,7 +155,7 @@ input(f"Getting messages after {date_after}. Press Enter to continue.")
 
 fname_out = op.join(path_out_exp, f"{author}_export_{date_after}.json")
 if re_download or not op.exists(fname_out):
-    command = f"cd {path_exp} && .\DiscordChatExporter.Cli.exe export  -t {token} -f Json -c {chan_id} -o {fname_out} {after}"
+    command = rf"cd {path_exp} && .\DiscordChatExporter.Cli.exe export  -t {token} -f Json -c {chan_id} -o {fname_out} {after}"
     if is_mac:
         command = f"docker run --rm -it -v ~/Documents/code/stocks/DiscordAlertsTrader/data/exported:/out tyrrrz/discordchatexporter:stable export -f Json --channel {chan_id} -t {token} {after} -o {author}_export_{date_after}.json"
     try:
@@ -209,17 +210,22 @@ for ix, row in msg_hist.loc[:].iterrows():  # .loc[ix:].iterrows(): #
 
     # on a mac when downloaded using the docker version of discordchartexporter, the timestamp is in UTC
     if not is_mac:
-        tsm = round(pd.to_datetime(order["Date"]).tz_localize('America/New_York').tz_convert('UTC').timestamp())
+        tsm = round(
+            pd.to_datetime(order["Date"])
+            .tz_localize("America/New_York")
+            .tz_convert("UTC")
+            .timestamp()
+        )
 
     full_date = (
-        order["expDate"] + f"/{year}"
-        if len(order["expDate"].split("/")) == 2
-        else order["expDate"]
+        order["expDate"] + f"/{year}" if len(order["expDate"].split("/")) == 2 else order["expDate"]
     )
     dt_fm = (
         "%m/%d/%y"
         if len(full_date.split("/")) == 2
-        else "%m/%d/%Y" if len(full_date.split("/")[2]) == 4 else "%m/%d/%y"
+        else "%m/%d/%Y"
+        if len(full_date.split("/")[2]) == 4
+        else "%m/%d/%y"
     )
     try:
         datetime.strptime(full_date, dt_fm).date()
@@ -241,7 +247,7 @@ for ix, row in msg_hist.loc[:].iterrows():  # .loc[ix:].iterrows(): #
             out = get_hist_quotes(order["Symbol"], [dt.date()], client)
         if out is None:
             raise Exception("No data")
-        save_or_append_quote(out, order['Symbol'], 'data/hist_quotes')
+        save_or_append_quote(out, order["Symbol"], "data/hist_quotes")
         out = out.reset_index(drop=True)
     except Exception as e:
         print(f"row {ix}, No data for", order["Symbol"], order["Date"], e)
@@ -278,7 +284,10 @@ for ix, row in msg_hist.loc[:].iterrows():  # .loc[ix:].iterrows(): #
 
     try:
         resp = tracker.trade_alert(order, live_alert=False, channel=author)
-        tracker.portfolio.loc[(tracker.portfolio['Symbol'] == order['Symbol']) & (tracker.portfolio['isOpen']==1), 'bid'] = order['price_actual_bid']
+        tracker.portfolio.loc[
+            (tracker.portfolio["Symbol"] == order["Symbol"]) & (tracker.portfolio["isOpen"] == 1),
+            "bid",
+        ] = order["price_actual_bid"]
     except:
         print("No date match for", order["Symbol"], order["Date"])
         continue

@@ -4,7 +4,9 @@ This module defines the AsyncClient class to make asynchronous HTTP requests usi
 Classes:
     - AsyncClient: Manages asynchronous HTTP requests.
 """
-from typing import Any, Mapping, Optional
+
+from collections.abc import Mapping
+from typing import Any
 
 import httpx
 
@@ -20,7 +22,7 @@ class AsyncClient(BaseClient):
     """
 
     async def _delete_request(
-        self, url: str, params: Optional[dict] = None, headers: Optional[dict] = None
+        self, url: str, params: dict | None = None, headers: dict | None = None
     ) -> httpx.Response:
         if headers is None:
             headers = {}
@@ -31,7 +33,7 @@ class AsyncClient(BaseClient):
         return response
 
     async def _get_request(
-        self, url: str, params: Optional[dict] = None, headers: Optional[dict] = None
+        self, url: str, params: dict | None = None, headers: dict | None = None
     ) -> httpx.Response:
         if headers is None:
             headers = {}
@@ -44,9 +46,9 @@ class AsyncClient(BaseClient):
     async def _post_request(
         self,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        params: dict | None = None,
+        headers: dict | None = None,
+        data: Mapping[str, Any] | None = None,
     ) -> httpx.Response:
         if headers is None:
             headers = {}
@@ -59,9 +61,9 @@ class AsyncClient(BaseClient):
     async def _put_request(
         self,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        params: dict | None = None,
+        headers: dict | None = None,
+        data: Mapping[str, Any] | None = None,
     ) -> httpx.Response:
         if headers is None:
             headers = {}
@@ -73,5 +75,5 @@ class AsyncClient(BaseClient):
 
     async def get_accounts(self, user_id: str) -> httpx.Response:
         url, params = self._get_accounts(user_id)
-        
+
         return await self._get_request(url, params)

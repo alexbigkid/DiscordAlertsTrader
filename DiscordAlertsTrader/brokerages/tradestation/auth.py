@@ -13,20 +13,21 @@ Example:
 ```python
 from auth import easy_client
 
-client = easy_client("client_key", "client_secret", "http://localhost/callback")
-"""
+client = easy_client("client_key", "client_secret", "http://localhost/callback")"""
 
 import json
 import logging
 import os
 import secrets
-from typing import Any, Callable, Dict, Union
+from collections.abc import Callable
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 
 from DiscordAlertsTrader.brokerages.tradestation.client.asynchronous import AsyncClient
 from DiscordAlertsTrader.brokerages.tradestation.client.synchronous import Client
+
 
 AUTH_ENDPOINT = "https://signin.tradestation.com/authorize"
 TOKEN_ENDPOINT = "https://signin.tradestation.com/oauth/token"  # nosec - This isn't a hardcoded password
@@ -88,7 +89,7 @@ def __update_token(token_path: str) -> Callable:
     return update_token
 
 
-def __token_loader(token_path: str) -> Callable[[], Dict[str, Any]]:
+def __token_loader(token_path: str) -> Callable[[], dict[str, Any]]:
     """
     Return a function to load the token information from a file.
 
@@ -141,7 +142,11 @@ def __token_loader(token_path: str) -> Callable[[], Dict[str, Any]]:
 
 
 def easy_client(
-    client_key: str, client_secret: str, redirect_uri: str, paper_trade: bool = True, asyncio: bool = False
+    client_key: str,
+    client_secret: str,
+    redirect_uri: str,
+    paper_trade: bool = True,
+    asyncio: bool = False,
 ) -> AsyncClient | Client:
     """
     Initialize and return a client object based on existing token or manual flow.
@@ -159,7 +164,9 @@ def easy_client(
 
     Example Usage:
     ```
-    client = easy_client("client_key", "client_secret", "http://localhost/callback", paper_trade=True, asyncio=False)
+    client = easy_client(
+        "client_key", "client_secret", "http://localhost/callback", paper_trade=True, asyncio=False
+    )
     ```
 
     Notes:
@@ -178,7 +185,11 @@ def easy_client(
 
 
 def client_from_manual_flow(
-    client_key: str, client_secret: str, redirect_uri: str, paper_trade: bool = True, asyncio: bool = False
+    client_key: str,
+    client_secret: str,
+    redirect_uri: str,
+    paper_trade: bool = True,
+    asyncio: bool = False,
 ) -> AsyncClient | Client:
     """
     Initialize and return a client object by manually completing the OAuth2 flow.
@@ -196,7 +207,9 @@ def client_from_manual_flow(
 
     Example Usage:
     ```
-    client = client_from_manual_flow("client_key", "client_secret", "http://localhost:80/", paper_trade=True, asyncio=False)
+    client = client_from_manual_flow(
+        "client_key", "client_secret", "http://localhost:80/", paper_trade=True, asyncio=False
+    )
     ```
 
     Notes:
@@ -209,7 +222,9 @@ def client_from_manual_flow(
         "client_id": client_key,
         "redirect_uri": redirect_uri,
         "audience": AUDIENCE_ENDPOINT,
-        "state": secrets.token_hex(16),  # Ideally, this should be dynamically generated for each request
+        "state": secrets.token_hex(
+            16
+        ),  # Ideally, this should be dynamically generated for each request
         "scope": "MarketData ReadAccount Trade Crypto OptionSpreads Matrix openid offline_access profile email",
     }
     url = httpx.get(AUTH_ENDPOINT, params=params).url
@@ -234,9 +249,11 @@ def client_from_manual_flow(
 
     if response.status_code == httpx._status_codes.codes.BAD_REQUEST:
         print(f"Failed to authorize token. {response.status_code}")
-        raise ValueError(f"Failed to authorize token. {response.status_code}")  # Or raise an exception
+        raise ValueError(
+            f"Failed to authorize token. {response.status_code}"
+        )  # Or raise an exception
 
-    token: dict[str, Union[str, int]] = response.json()
+    token: dict[str, str | int] = response.json()
 
     # Update Token State (this function should be defined elsewhere)
     update_token = __update_token("ts_state.json")
@@ -275,7 +292,9 @@ def client_from_token_file(
 
     Example Usage:
     ```
-    client = client_from_token_file("client_id", "client_secret", read_token, paper_trade=True, asyncio=False)
+    client = client_from_token_file(
+        "client_id", "client_secret", read_token, paper_trade=True, asyncio=False
+    )
     ```
 
     Notes:
@@ -325,10 +344,13 @@ def client_from_access_functions(
             "access_token": "some_access_token",
             "refresh_token": "some_refresh_token",
             "access_token_expires_in": 3600,
-            "access_token_expires_at": 1678900000
+            "access_token_expires_at": 1678900000,
         }
 
-    client = client_from_access_functions("client_id", "client_secret", read_token, paper_trade=True, asyncio=False)
+
+    client = client_from_access_functions(
+        "client_id", "client_secret", read_token, paper_trade=True, asyncio=False
+    )
     ```
 
     Notes:

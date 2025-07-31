@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Sat Apr  3 18:18:43 2021
 
 @author: adonay
 """
+
 import os
 import os.path as op
-import threading
-import pandas as pd
-from datetime import datetime
-import time
-import re
 import queue
-import PySimpleGUIQt as sg
+import re
+import threading
+import time
+from datetime import datetime
+
 # from PySide2.QtWidgets import QHeaderView
 import matplotlib.pyplot as plt
+import pandas as pd
+import PySimpleGUIQt as sg
 
-from DiscordAlertsTrader.brokerages import get_brokerage
 from DiscordAlertsTrader import gui_generator as gg
 from DiscordAlertsTrader import gui_layouts as gl
-from DiscordAlertsTrader.discord_bot import DiscordBot
+from DiscordAlertsTrader.brokerages import get_brokerage
 from DiscordAlertsTrader.configurator import cfg, channel_ids
-from DiscordAlertsTrader.message_parser import parse_trade_alert, ordersymb_to_str
+from DiscordAlertsTrader.discord_bot import DiscordBot
+from DiscordAlertsTrader.message_parser import ordersymb_to_str, parse_trade_alert
+
+
 # A fix for Macs
-os.environ['QT_MAC_WANTS_LAYER'] = '1'
+os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
 
-def match_authors(author_str:str)->str:
+def match_authors(author_str: str) -> str:
     """Author have an identifier in discord, it will try to find full author name
 
     Parameters
@@ -44,38 +47,39 @@ def match_authors(author_str:str)->str:
         return author_str
     authors = []
     for chn in channel_ids.keys():
-        at = pd.read_csv(op.join(cfg['general']['data_dir'] , f"{chn}_message_history.csv"))["Author"].unique()
+        at = pd.read_csv(op.join(cfg["general"]["data_dir"], f"{chn}_message_history.csv"))[
+            "Author"
+        ].unique()
         authors.extend(at)
     authors = list(dict.fromkeys(authors))
-    
-    authors += cfg['discord']['authors_subscribed'].split(',')
+
+    authors += cfg["discord"]["authors_subscribed"].split(",")
     authors = [a for a in authors if author_str.lower() in a.lower()]
-    if len(authors) == 0:
-        author = author_str
-    elif len(authors) > 1:
+    if len(authors) == 0 or len(authors) > 1:
         author = author_str
     else:
         author = authors[0]
     return author
 
+
 def split_alert_message(gui_msg):
     # extra comas
-    if len(gui_msg.split(','))>2:
-        splt = gui_msg.split(',')
+    if len(gui_msg.split(",")) > 2:
+        splt = gui_msg.split(",")
         author = splt[0]
         msg = ",".join(splt[1:])
     # one coma
-    elif len(gui_msg.split(','))==2:
-        author, msg = gui_msg.split(',')
+    elif len(gui_msg.split(",")) == 2:
+        author, msg = gui_msg.split(",")
     # one colon
-    elif len(gui_msg.split(':'))==2:
-        author, msg = gui_msg.split(':')
+    elif len(gui_msg.split(":")) == 2:
+        author, msg = gui_msg.split(":")
     # extra colons
-    elif len(gui_msg.split(':'))>2:
-        splt = gui_msg.split(':')
+    elif len(gui_msg.split(":")) > 2:
+        splt = gui_msg.split(":")
         author = splt[0]
         msg = ":".join(splt[1:])
-        
+
     # no colon or coma
     else:
         print("No colon or coma in message, author not found, assuming no author")
@@ -83,91 +87,129 @@ def split_alert_message(gui_msg):
         msg = gui_msg
     return author, msg
 
+
 def get_live_quotes(symbol, tracker, max_delay=2):
-    dir_quotes = cfg['general']['data_dir'] + '/live_quotes'
-    
+    dir_quotes = cfg["general"]["data_dir"] + "/live_quotes"
+
     fquote = f"{dir_quotes}/{symbol}.csv"
     if not op.exists(fquote):
         quote = tracker.price_now(symbol, "both")
         if quote is None:
-            return None, None        
+            return None, None
         return quote
-    
-    with open(fquote, "r") as f:
+
+    with open(fquote) as f:
         quotes = f.readlines()
-    
+
     now = time.time()
     get_live = False
     try:
-        tmp = quotes[-1].split(',') # in s  
+        tmp = quotes[-1].split(",")  # in s
         if len(tmp) == 3:
             timestamp, bid, ask = tmp
         else:
             timestamp, ask = tmp
             bid = ask
-        ask = ask.strip().replace('\n', '')
+        ask = ask.strip().replace("\n", "")
         quote = [ask, bid]
     except:
         print("Error reading quote", symbol, quotes[-1])
         get_live = True
-    
+
     timestamp = eval(timestamp)
     if max_delay is not None:
         if now - timestamp > max_delay:
             get_live = True
-    
+
     if get_live:
         quote = tracker.price_now(symbol, "both")
         if quote is None:
-            return None, None        
+            return None, None
         return quote
     return quote
 
 
 def quotes_plotting(symbol, trader=None, tracker=None):
-    dir_quotes = cfg['general']['data_dir'] + '/live_quotes'
-    
-    fquote = f"{dir_quotes}/{symbol}.csv"
-    if not op.exists(fquote):      
-        return None
-    
-    quotes = pd.read_csv(fquote)
-    
-    quotes['date'] = pd.to_datetime(quotes['timestamp'], unit='s', utc=True).dt.tz_convert('America/New_York')
-    quotes['date'] = quotes['date'].dt.tz_localize(None)
-    quotes['ask'] = quotes[' quote_ask']
-    quotes['bid'] = quotes[' quote']
+    dir_quotes = cfg["general"]["data_dir"] + "/live_quotes"
 
-    quotes = quotes[quotes['date'].dt.date == datetime.now().date()]
-    quotes = quotes[quotes['ask'] > 0]
-    quotes.set_index('date', inplace=True)
-    
-    quotes[['ask', 'bid']].plot(alpha=0.5)
-    
+    fquote = f"{dir_quotes}/{symbol}.csv"
+    if not op.exists(fquote):
+        return None
+
+    quotes = pd.read_csv(fquote)
+
+    quotes["date"] = pd.to_datetime(quotes["timestamp"], unit="s", utc=True).dt.tz_convert(
+        "America/New_York"
+    )
+    quotes["date"] = quotes["date"].dt.tz_localize(None)
+    quotes["ask"] = quotes[" quote_ask"]
+    quotes["bid"] = quotes[" quote"]
+
+    quotes = quotes[quotes["date"].dt.date == datetime.now().date()]
+    quotes = quotes[quotes["ask"] > 0]
+    quotes.set_index("date", inplace=True)
+
+    quotes[["ask", "bid"]].plot(alpha=0.5)
+
     for tt in [trader, tracker]:
         if tt is not None:
-            tts  = tt.portfolio[(tt.portfolio['Symbol'] == symbol) &
-                                (pd.to_datetime(tt.portfolio['Date']).dt.date == datetime.now().date()) ]
+            tts = tt.portfolio[
+                (tt.portfolio["Symbol"] == symbol)
+                & (pd.to_datetime(tt.portfolio["Date"]).dt.date == datetime.now().date())
+            ]
             if len(tts):
                 for ix, row in tts.iterrows():
-                    if str(tt.__class__) == "<class 'DiscordAlertsTrader.alerts_tracker.AlertsTracker'>":                        
-                        plt.plot(pd.to_datetime(row['Date']), row['Price'], 'go')
-                        plt.text(pd.to_datetime(row['Date']), row['Price']*1.009, f"track:{row['Trader']}: {row['Type']}", fontsize=12, color='g', rotation=45)
-                        if not pd.isna(row['STC-Date']):
-                            plt.plot(pd.to_datetime(row['STC-Date']), row['STC-Price'], 'ro')
-                            plt.text(pd.to_datetime(row['STC-Date']), row['STC-Price']*1.009, f"track:{row['Trader']}: Closed", fontsize=12, color='red', rotation=45)
+                    if (
+                        str(tt.__class__)
+                        == "<class 'DiscordAlertsTrader.alerts_tracker.AlertsTracker'>"
+                    ):
+                        plt.plot(pd.to_datetime(row["Date"]), row["Price"], "go")
+                        plt.text(
+                            pd.to_datetime(row["Date"]),
+                            row["Price"] * 1.009,
+                            f"track:{row['Trader']}: {row['Type']}",
+                            fontsize=12,
+                            color="g",
+                            rotation=45,
+                        )
+                        if not pd.isna(row["STC-Date"]):
+                            plt.plot(pd.to_datetime(row["STC-Date"]), row["STC-Price"], "ro")
+                            plt.text(
+                                pd.to_datetime(row["STC-Date"]),
+                                row["STC-Price"] * 1.009,
+                                f"track:{row['Trader']}: Closed",
+                                fontsize=12,
+                                color="red",
+                                rotation=45,
+                            )
                     else:
-                        plt.plot(pd.to_datetime(row['Date']), row['Price'], 'go')
-                        plt.plot(pd.to_datetime(row['Date']), row['Price'], 'kx')
-                        plt.text(pd.to_datetime(row['Date']), row['Price']*1.009, f"port:{row['Trader']} {row['Type']}", fontsize=12, color='g', rotation=45)
-                        cols = [c for c in tts.columns if c.startswith('STC') and c.endswith('-Date')]
+                        plt.plot(pd.to_datetime(row["Date"]), row["Price"], "go")
+                        plt.plot(pd.to_datetime(row["Date"]), row["Price"], "kx")
+                        plt.text(
+                            pd.to_datetime(row["Date"]),
+                            row["Price"] * 1.009,
+                            f"port:{row['Trader']} {row['Type']}",
+                            fontsize=12,
+                            color="g",
+                            rotation=45,
+                        )
+                        cols = [
+                            c for c in tts.columns if c.startswith("STC") and c.endswith("-Date")
+                        ]
                         for c in cols:
                             if pd.isna(row[c]):
                                 continue
                             print(row[c])
-                            plt.plot(pd.to_datetime(row[c]), row[c.split("-")[0] + '-Price'], 'ro')
-                            plt.plot(pd.to_datetime(row[c]), row[c.split("-")[0] + '-Price'], 'kx')
-                            plt.text(pd.to_datetime(row[c]), row[c.split("-")[0] + '-Price']*1.009, f"port:{row['Trader']}: Closed", fontsize=12, color='red', rotation=45)
+                            plt.plot(pd.to_datetime(row[c]), row[c.split("-")[0] + "-Price"], "ro")
+                            plt.plot(pd.to_datetime(row[c]), row[c.split("-")[0] + "-Price"], "kx")
+                            plt.text(
+                                pd.to_datetime(row[c]),
+                                row[c.split("-")[0] + "-Price"] * 1.009,
+                                f"port:{row['Trader']}: Closed",
+                                fontsize=12,
+                                color="red",
+                                rotation=45,
+                            )
     plt.tight_layout()
     plt.title(symbol)
     plt.show(block=False)
@@ -179,35 +221,39 @@ def fit_table_elms(Widget_element):
     Widget_element.resizeRowsToContents()
     Widget_element.resizeColumnsToContents()
 
+
 # sg.theme('Dark Blue 3')
 sg.SetOptions(font=("Helvitica 13"))
 
 fnt_b = "Helvitica 11"
 fnt_h = "Helvitica 13"
 
-ly_cons, MLINE_KEY = gl.layout_console('Discord messages from all the channels', '-MLINE-')
-ly_cons_subs, MLINE_SUBS_KEY = gl.layout_console('Discord messages only from subscribed authors',
-                                       '-MLINEsub-')
+ly_cons, MLINE_KEY = gl.layout_console("Discord messages from all the channels", "-MLINE-")
+ly_cons_subs, MLINE_SUBS_KEY = gl.layout_console(
+    "Discord messages only from subscribed authors", "-MLINEsub-"
+)
 
 print(1)
 gui_data = {}
-gui_data['port'] = gg.get_portf_data()
-ly_port = gl.layout_portfolio(gui_data['port'], fnt_b, fnt_h)
+gui_data["port"] = gg.get_portf_data()
+ly_port = gl.layout_portfolio(gui_data["port"], fnt_b, fnt_h)
 
-gui_data['trades'] = gg.get_tracker_data()
-ly_track = gl.layout_traders(gui_data['trades'], fnt_b, fnt_h)
+gui_data["trades"] = gg.get_tracker_data()
+ly_track = gl.layout_traders(gui_data["trades"], fnt_b, fnt_h)
 
-gui_data['stats'] = gg.get_stats_data()
-ly_stats = gl.layout_stats(gui_data['stats'], fnt_b, fnt_h)
+gui_data["stats"] = gg.get_stats_data()
+ly_stats = gl.layout_stats(gui_data["stats"], fnt_b, fnt_h)
 print(2)
 
 chns = channel_ids.keys()
 ly_chns = []
 for chn in chns:
-    chn_fname = cfg['general']['data_dir']+f"/{chn}_message_history.csv"
+    chn_fname = cfg["general"]["data_dir"] + f"/{chn}_message_history.csv"
     if not op.exists(chn_fname):
-        os.makedirs(cfg['general']['data_dir'], exist_ok=True)
-        pd.DataFrame(columns=cfg["col_names"]['chan_hist'].split(',')).to_csv(chn_fname, index=False)
+        os.makedirs(cfg["general"]["data_dir"], exist_ok=True)
+        pd.DataFrame(columns=cfg["col_names"]["chan_hist"].split(",")).to_csv(
+            chn_fname, index=False
+        )
     gui_data[chn] = gg.get_hist_msgs(chan_name=chn)
     ly_ch = gl.layout_chan_msg(chn, gui_data[chn], fnt_b, fnt_h)
     ly_chns.append(ly_ch)
@@ -215,25 +261,47 @@ for chn in chns:
 bksession = get_brokerage()
 ly_accnt = gl.layout_account(bksession, fnt_b, fnt_h)
 ly_conf = gl.layout_config(fnt_b, cfg)
-msg_tab = [[sg.TabGroup([[sg.Tab(c, h) for c, h in zip(chns, ly_chns)],
-                        ], title_color='black')]]
-layout = [[sg.TabGroup([
-                        [sg.Tab("Msgs Subs", ly_cons_subs, font=fnt_b)],
-                        [sg.Tab("Msgs All", ly_cons, font=fnt_b)], 
-                        [sg.Tab('Portfolio', ly_port)],
-                        [sg.Tab('Analysts Portfolio', ly_track)],
-                        [sg.Tab('Analysts Stats', ly_stats)],
-                        [sg.Tab('Msg History',msg_tab)],                        
-                        [sg.Tab("Account", ly_accnt)],
-                        [sg.Tab("Config", ly_conf)]
-                        ], title_color='black', font=fnt_b)],
-        ]
+msg_tab = [
+    [
+        sg.TabGroup(
+            [
+                [sg.Tab(c, h) for c, h in zip(chns, ly_chns, strict=False)],
+            ],
+            title_color="black",
+        )
+    ]
+]
+layout = [
+    [
+        sg.TabGroup(
+            [
+                [sg.Tab("Msgs Subs", ly_cons_subs, font=fnt_b)],
+                [sg.Tab("Msgs All", ly_cons, font=fnt_b)],
+                [sg.Tab("Portfolio", ly_port)],
+                [sg.Tab("Analysts Portfolio", ly_track)],
+                [sg.Tab("Analysts Stats", ly_stats)],
+                [sg.Tab("Msg History", msg_tab)],
+                [sg.Tab("Account", ly_accnt)],
+                [sg.Tab("Config", ly_conf)],
+            ],
+            title_color="black",
+            font=fnt_b,
+        )
+    ],
+]
 layout += gl.trigger_alerts_layout()
 print(3)
 bk_name = "None" if bksession is None else bksession.name
-window = sg.Window(f'Discord Alerts Trader - with broker {bk_name}', layout,size=(100, 800), # force_toplevel=True,
-                    auto_size_text=True, resizable=True)
+window = sg.Window(
+    f"Discord Alerts Trader - with broker {bk_name}",
+    layout,
+    size=(100, 800),  # force_toplevel=True,
+    auto_size_text=True,
+    resizable=True,
+)
 print(4)
+
+
 def mprint_queue(queue_item_list, subscribed_author=False):
     # queue_item_list = [string, text_color, background_color]
     kwargs = {}
@@ -254,17 +322,23 @@ def mprint_queue(queue_item_list, subscribed_author=False):
     if subscribed_author or len_que == 3:
         window[MLINE_SUBS_KEY].print(text, **kwargs)
 
+
 def update_portfolios_thread(window):
     while True:
         time.sleep(60)
         window["_upd-portfolio_"].click()
-        time.sleep(2)  
+        time.sleep(2)
         window["_upd-track_"].click()
-print(5)
-event, values = window.read(.1)
 
-els = ['_portfolio_', '_track_', ] + [f"{chn}_table" for chn in chns]
-els = els + ['_orders_', '_positions_'] if bksession is not None else els
+
+print(5)
+event, values = window.read(0.1)
+
+els = [
+    "_portfolio_",
+    "_track_",
+] + [f"{chn}_table" for chn in chns]
+els = els + ["_orders_", "_positions_"] if bksession is not None else els
 for el in els:
     try:
         fit_table_elms(window.Element(el).Widget)
@@ -278,84 +352,86 @@ for chn in chns:
     window[f"{chn}_table"].Widget.scrollToBottom()
 
 print(6)
-event, values = window.read(.1)
+event, values = window.read(0.1)
 print(7)
 trade_events = queue.Queue(maxsize=20)
 alistner = DiscordBot(trade_events, brokerage=bksession, cfg=cfg)
 print(8)
 threading.Thread(target=update_portfolios_thread, args=(window,), daemon=True).start()
 print(9)
-event, values = window.read(.1)
+event, values = window.read(0.1)
 
 # exclusion filters for the portfolio and analysts tabs
-port_exc = {"Closed":False,
-            "Open":False,
-            "NegPnL":False,
-            "PosPnL":False,
-            "live PnL":False,
-            "stocks":True,
-            "options":False,
-            'bto':False,
-            "stc":False,
-            }
+port_exc = {
+    "Closed": False,
+    "Open": False,
+    "NegPnL": False,
+    "PosPnL": False,
+    "live PnL": False,
+    "stocks": True,
+    "options": False,
+    "bto": False,
+    "stc": False,
+}
 track_exc = port_exc.copy()
 stat_exc = port_exc.copy()
 port_exc["Canceled"] = True
 port_exc["Rejected"] = False
 
 print(10)
-dt, _  = gg.get_tracker_data(track_exc, **values)
-window.Element('_track_').Update(values=dt)
+dt, _ = gg.get_tracker_data(track_exc, **values)
+window.Element("_track_").Update(values=dt)
 fit_table_elms(window.Element("_track_").Widget)
 dt, hdr = gg.get_portf_data(port_exc)
-window.Element('_portfolio_').Update(values=dt)
+window.Element("_portfolio_").Update(values=dt)
 fit_table_elms(window.Element("_portfolio_").Widget)
 dt, hdr = gg.get_stats_data(stat_exc)
-window.Element('_stat_').Update(values=dt)
+window.Element("_stat_").Update(values=dt)
 fit_table_elms(window.Element("_stat_").Widget)
 
 
-def run_gui():  
+def run_gui():
     subs_auth_msg = False
-    auth_subs = cfg['discord']['authors_subscribed'].split(',')
+    auth_subs = cfg["discord"]["authors_subscribed"].split(",")
     auth_subs = [i.split("#")[0].strip() for i in auth_subs]
-    ori_color = 'black'
-    while True: 
-        event, values = window.read(1)#.1)
+    ori_color = "black"
+    while True:
+        event, values = window.read(1)  # .1)
 
         if event == sg.WINDOW_CLOSED:
             break
 
         # Prefill trigger alert message
-        if ('_portfolio_' in event and values['_portfolio_'] != []) or \
-            ('_track_' in event and values['_track_'] != []):  
-            if '_portfolio_' in event:
-                pix = values['_portfolio_'][0] 
+        if ("_portfolio_" in event and values["_portfolio_"] != []) or (
+            "_track_" in event and values["_track_"] != []
+        ):
+            if "_portfolio_" in event:
+                pix = values["_portfolio_"][0]
                 dt, hdr = gg.get_portf_data(port_exc, **values)
                 if len(dt) and len(dt) > pix:
-                    qty = dt[pix][hdr.index('filledQty')]
+                    qty = dt[pix][hdr.index("filledQty")]
                 else:
                     qty = ""
             else:
-                pix = values['_track_'][0]
+                pix = values["_track_"][0]
                 dt, hdr = gg.get_tracker_data(track_exc, **values)
-                qty = dt[pix][hdr.index('Qty')]  
-            qty = qty if qty == "" else int(float(qty)) 
+                qty = dt[pix][hdr.index("Qty")]
+            qty = qty if qty == "" else int(float(qty))
             try:
-                symb = dt[pix][hdr.index('Symbol')]
-            except: 
-                continue   
-            auth = match_authors(dt[pix][hdr.index('Trader')])
-            
+                symb = dt[pix][hdr.index("Symbol")]
+            except:
+                continue
+            auth = match_authors(dt[pix][hdr.index("Trader")])
+
             price = ""
             if "Live" in hdr:
-                price = dt[pix][hdr.index('Live')]
+                price = dt[pix][hdr.index("Live")]
             if price == "":
-                price = dt[pix][hdr.index('S-Price-actual')]
+                price = dt[pix][hdr.index("S-Price-actual")]
             if price == "":
-                price = dt[pix][hdr.index('S-Price')]
-            if 'Type' in hdr:
-                action = dt[pix][hdr.index('Type')]
+                price = dt[pix][hdr.index("S-Price")]
+            if "Type" in hdr:
+                action = dt[pix][hdr.index("Type")]
                 if action == "BTO":
                     action = "STC"
                 elif action == "STO":
@@ -365,101 +441,111 @@ def run_gui():
             price = price if price == "" else float(price)
             if "_" in symb:
                 # option
-                exp = r"(\w+)_(\d{6})([CP])([\d.]+)"        
+                exp = r"(\w+)_(\d{6})([CP])([\d.]+)"
                 match = re.search(exp, symb, re.IGNORECASE)
                 if match:
                     symbol, date, type, strike = match.groups()
                     symb_str = f"{auth}, {action} {qty} {symbol} {strike}{type} {date[:2]}/{date[2:4]} @{price}"
             else:
-                symb_str= f"{auth}, {action} {qty} {symb} @{price}"
+                symb_str = f"{auth}, {action} {qty} {symb} @{price}"
             window.Element("-subm-msg").Update(value=symb_str)
         # handle alert buttons
-        elif event == '-toggle':
+        elif event == "-toggle":
             state = window[event].GetText()
-            butts = ['-alert_to-', '-alert_BTO', '-alert_STC', '-alert_STO', '-alert_BTC', '-alert_exitupdate',
-                     '-alert_quotes', '-alert_plot', '-alert_tome', '-alert_tomeshort', '-alert_exits' ]
-            if state == '▲':
-                window[event].update(text='▼')            
+            butts = [
+                "-alert_to-",
+                "-alert_BTO",
+                "-alert_STC",
+                "-alert_STO",
+                "-alert_BTC",
+                "-alert_exitupdate",
+                "-alert_quotes",
+                "-alert_plot",
+                "-alert_tome",
+                "-alert_tomeshort",
+                "-alert_exits",
+            ]
+            if state == "▲":
+                window[event].update(text="▼")
             else:
-                window[event].update(text='▲')
+                window[event].update(text="▲")
             for el in butts:
-                window[el].update(visible=state == '▲')
-                
-        elif event.startswith('-alert_' ):
+                window[el].update(visible=state == "▲")
+
+        elif event.startswith("-alert_"):
             print(event)
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
-            window.refresh()            
+            window.refresh()
 
-            action = event.split('_')[1]
-            
-            msg_split = split_alert_message(values['-subm-msg'])
+            action = event.split("_")[1]
+
+            msg_split = split_alert_message(values["-subm-msg"])
             if len(msg_split) == 2:
                 author, alert = msg_split
             else:
                 author, alert = "author", msg_split[0]
-            
-            if event.startswith('-alert_tome'):
-                author = "me" if event == '-alert_tome' else "me_short"
+
+            if event.startswith("-alert_tome"):
+                author = "me" if event == "-alert_tome" else "me_short"
                 msg = f"{author}, {alert.strip()}"
                 window.Element("-subm-msg").Update(value=msg)
                 window.Element(event).Update(button_color=ori_col)
-                continue   
+                continue
 
             # fix missing price, none price, no action
             if "@" not in alert:
                 alert += " @0.01"
-            if  not len([p for p in ["BTO", "STO", "BTC", "STC"] if p in alert]):
-                alert = "BTO " + alert                
+            if not len([p for p in ["BTO", "STO", "BTC", "STC"] if p in alert]):
+                alert = "BTO " + alert
             alert = alert.replace("@None", "@0.01").replace("@m", "@0.01")
             _, order = parse_trade_alert(alert)
 
             if order is None:
                 window.Element(event).Update(button_color=ori_col)
                 continue
-            
-            if '-alert_plot' in event:
+
+            if "-alert_plot" in event:
                 # get live quotes and plot
-                quotes_plotting(order['Symbol'], alistner.trader, alistner.tracker)
+                quotes_plotting(order["Symbol"], alistner.trader, alistner.tracker)
                 window.Element(event).Update(button_color=ori_col)
                 continue
-            
-            ask, bid = get_live_quotes(order['Symbol'], alistner.tracker)
-            if action in ["BTO", "BTC"] or order['action'] in ["BTO", "BTC"]:
+
+            ask, bid = get_live_quotes(order["Symbol"], alistner.tracker)
+            if action in ["BTO", "BTC"] or order["action"] in ["BTO", "BTC"]:
                 price = ask
-            elif action in ["STO", "STC"] or order['action'] in ["STO", "STC"]:
+            elif action in ["STO", "STC"] or order["action"] in ["STO", "STC"]:
                 price = bid
             else:
                 price = ask
             if price is None:
-                price = order.get('price', 0.01)
-            symbol = ordersymb_to_str(order['Symbol'])
-            if order.get('Qty') is None:
-                order['Qty'] = 1
-            if action =='exitupdate':
-                msg =  f"{author}, Exit Update {symbol} PT 50% SL 50%"
-            elif action == 'exits':
-                msg =  f"{author}, Exit Update {symbol} PT1 20% PT2 40% PT3 60% SL 50%"
-            elif action == 'quotes': 
-                action_msg = order['action'].replace('ExitUpdate', "BTO")
-                
-                msg =  f"{author}, {action_msg} {order['Qty']} {symbol} @{price} | [ask {ask} bid {bid}]" 
+                price = order.get("price", 0.01)
+            symbol = ordersymb_to_str(order["Symbol"])
+            if order.get("Qty") is None:
+                order["Qty"] = 1
+            if action == "exitupdate":
+                msg = f"{author}, Exit Update {symbol} PT 50% SL 50%"
+            elif action == "exits":
+                msg = f"{author}, Exit Update {symbol} PT1 20% PT2 40% PT3 60% SL 50%"
+            elif action == "quotes":
+                action_msg = order["action"].replace("ExitUpdate", "BTO")
+
+                msg = f"{author}, {action_msg} {order['Qty']} {symbol} @{price} | [ask {ask} bid {bid}]"
             else:
-                msg =  f"{author}, {action} {order['Qty']} {symbol} @{price}" 
-                
+                msg = f"{author}, {action} {order['Qty']} {symbol} @{price}"
+
             window.Element("-subm-msg").Update(value=msg)
             window.Element(event).Update(button_color=ori_col)
-            
-        elif event == "_upd-portfolio_": # update button in portfolio
+
+        elif event == "_upd-portfolio_":  # update button in portfolio
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
             window.refresh()
             dt, _ = gg.get_portf_data(port_exc, **values)
-            window.Element('_portfolio_').Update(values=dt)
+            window.Element("_portfolio_").Update(values=dt)
             fit_table_elms(window.Element("_portfolio_").Widget)
             window.Element(event).Update(button_color=ori_col)
 
-            
         elif event == "cfg_button":
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
@@ -468,16 +554,16 @@ def run_gui():
                 if k.startswith("cfg"):
                     if isinstance(window[k], sg.Checkbox):
                         continue
-                    if window.Element(k).TextColor == 'red':
+                    if window.Element(k).TextColor == "red":
                         window.Element(k).Update(text_color=ori_color)
-                    f1,f2 = k.replace("cfg_", "").split(".")
+                    f1, f2 = k.replace("cfg_", "").split(".")
                     cfg[f1][f2] = str(v)
             window.Element(event).Update(button_color=ori_col)
 
         elif event.startswith("cfg"):
             # print(event)
             if isinstance(window[event], sg.Checkbox):
-                f1,f2 = event.replace("cfg_", "").split(".")
+                f1, f2 = event.replace("cfg_", "").split(".")
                 # print("before", cfg[f1][f2])
                 cfg[f1][f2] = str(values[event])
                 print("changed", cfg[f1][f2])
@@ -486,45 +572,45 @@ def run_gui():
                 if cur_color != "red":
                     ori_color = cur_color
                 window.Element(event).Update(text_color="red")
-            
-        elif event == "_upd-track_": # update button in analyst alerts
+
+        elif event == "_upd-track_":  # update button in analyst alerts
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
             window.refresh()
-            dt, _  = gg.get_tracker_data(track_exc, **values)
-            window.Element('_track_').Update(values=dt)
+            dt, _ = gg.get_tracker_data(track_exc, **values)
+            window.Element("_track_").Update(values=dt)
             fit_table_elms(window.Element("_track_").Widget)
             window.Element(event).Update(button_color=ori_col)
 
-        elif event == "_upd-stat_": # update button in analyst stats
+        elif event == "_upd-stat_":  # update button in analyst stats
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
             window.refresh()
-            dt, _  = gg.get_stats_data(stat_exc, **values)
-            window.Element('_stat_').Update(values=dt)
+            dt, _ = gg.get_stats_data(stat_exc, **values)
+            window.Element("_stat_").Update(values=dt)
             fit_table_elms(window.Element("_stat_").Widget)
             window.Element(event).Update(button_color=ori_col)
 
-        elif event.startswith("-port-"): # radial click, update portfolio
-            key =  event.replace("-port-", "")
+        elif event.startswith("-port-"):  # radial click, update portfolio
+            key = event.replace("-port-", "")
             state = window.Element(event).get()
             port_exc[key] = state
             dt, _ = gg.get_portf_data(port_exc, **values)
-            window.Element('_portfolio_').Update(values=dt)
+            window.Element("_portfolio_").Update(values=dt)
 
-        elif event.startswith("-track-"): # radial click, update analyst alerts
-            key =  event.replace("-track-", "")
+        elif event.startswith("-track-"):  # radial click, update analyst alerts
+            key = event.replace("-track-", "")
             state = window.Element(event).get()
             track_exc[key] = state
             dt, _ = gg.get_tracker_data(track_exc, **values)
-            window.Element('_track_').Update(values=dt)
+            window.Element("_track_").Update(values=dt)
 
-        elif event.startswith("-stat-"): # radial click, update analyst stats
-            key =  event.replace("-stat-", "")
+        elif event.startswith("-stat-"):  # radial click, update analyst stats
+            key = event.replace("-stat-", "")
             state = window.Element(event).get()
             stat_exc[key] = state
             dt, _ = gg.get_stats_data(stat_exc, **values)
-            window.Element('_stat_').Update(values=dt)
+            window.Element("_stat_").Update(values=dt)
 
         elif event[-3:] == "UPD":
             chn = event[:-4]
@@ -534,41 +620,43 @@ def run_gui():
 
             args = {}
             for k, v in values.items():
-                if k[:len(chn)] == chn:
-                    args[k[len(chn)+1:]] = v
-            dt, _  = gg.get_hist_msgs(chan_name=chn, **args)
+                if k[: len(chn)] == chn:
+                    args[k[len(chn) + 1 :]] = v
+            dt, _ = gg.get_hist_msgs(chan_name=chn, **args)
             window.Element(f"{chn}_table").Update(values=dt)
 
             fit_table_elms(window.Element(f"{chn}_table").Widget)
             window.Element(event).Update(button_color=ori_col)
 
-        elif event == 'acc_updt':
+        elif event == "acc_updt":
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
             window.refresh()
             gl.update_acct_ly(bksession, window)
-            fit_table_elms(window.Element(f"_positions_").Widget)
-            fit_table_elms(window.Element(f"_orders_").Widget)
+            fit_table_elms(window.Element("_positions_").Widget)
+            fit_table_elms(window.Element("_orders_").Widget)
             window.Element(event).Update(button_color=ori_col)
 
         elif event == "-subm-alert":
             ori_col = window.Element(event).ButtonColor
             window.Element(event).Update(button_color=("black", "white"))
-            window.refresh()    
-            try:        
-                author,msg = split_alert_message(values['-subm-msg'])
+            window.refresh()
+            try:
+                author, msg = split_alert_message(values["-subm-msg"])
                 author = match_authors(author.strip())
                 msg = msg.strip().replace("SPXW", "SPX")
                 date = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
                 chan = "GUI_" + values["_chan_trigg_"]
                 print(chan)
-                new_msg = pd.Series({
-                    'AuthorID': None,
-                    'Author': author,
-                    'Date': date, 
-                    'Content': msg,
-                    'Channel': chan
-                    })
+                new_msg = pd.Series(
+                    {
+                        "AuthorID": None,
+                        "Author": author,
+                        "Date": date,
+                        "Content": msg,
+                        "Channel": chan,
+                    }
+                )
                 alistner.new_msg_acts(new_msg, from_disc=False)
                 window.Element(event).Update(button_color=ori_col)
             except Exception as e:
@@ -582,33 +670,43 @@ def run_gui():
             if event_feedb[1] == "blue":
                 author = event_feedb[0].split("\n\t")[1].split(":")[0]
                 chan = event_feedb[0].split(": \n\t")[0].split(" ")[-1]
-                if any(a == author for a in auth_subs):
-                    subs_auth_msg = True
-                elif cfg['discord']['channelwise_subscription'].split(",") != [""] and \
-                    any([c.strip() == chan for c in cfg['discord']['channelwise_subscription'].split(",")]):
-                    subs_auth_msg = True
-                elif cfg['discord']['authorwise_subscription'].split(",") != [""] and \
-                    any([c.strip() == author for c in cfg['discord']['authorwise_subscription'].split(",")]):
+                if (
+                    any(a == author for a in auth_subs)
+                    or cfg["discord"]["channelwise_subscription"].split(",") != [""]
+                    and any(
+                        [
+                            c.strip() == chan
+                            for c in cfg["discord"]["channelwise_subscription"].split(",")
+                        ]
+                    )
+                    or cfg["discord"]["authorwise_subscription"].split(",") != [""]
+                    and any(
+                        [
+                            c.strip() == author
+                            for c in cfg["discord"]["authorwise_subscription"].split(",")
+                        ]
+                    )
+                ):
                     subs_auth_msg = True
                 else:
                     subs_auth_msg = False
-            
+
             mprint_queue(event_feedb, subs_auth_msg)
         except queue.Empty:
             pass
 
 
 def run_client():
-    if len(cfg['discord']['discord_token']) < 50:
+    if len(cfg["discord"]["discord_token"]) < 50:
         str_prt = "Discord token not provided, no discord messages will be received. Add user token in config.ini"
         print(str_prt)
         time.sleep(3)
-        trade_events.put([str_prt,"", "red"])
+        trade_events.put([str_prt, "", "red"])
         return
-    alistner.run(cfg['discord']['discord_token'])
+    alistner.run(cfg["discord"]["discord_token"])
 
 
-def gui():   
+def gui():
     client_thread = threading.Thread(target=run_client, daemon=True)
 
     # start the threads
@@ -621,5 +719,5 @@ def gui():
     exit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     gui()

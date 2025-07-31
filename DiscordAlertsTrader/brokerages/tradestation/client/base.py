@@ -1,13 +1,17 @@
 """BaseClient class for the TradeStation API."""
+
 import json
 import os
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable, Coroutine, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any, Awaitable, Callable, Coroutine, Mapping, Optional, Union
+from typing import Any
+
 import requests
 from httpx import Client, Response
+
 
 AUTH_ENDPOINT = "https://signin.tradestation.com/authorize"
 TOKEN_ENDPOINT = "https://signin.tradestation.com/oauth/token"  # nosec - This isn't a hardcoded password.
@@ -42,30 +46,34 @@ class BaseClient(ABC):
     paper_trade: bool = field(default=True)
     _logged_in: bool = field(init=False, default=False)
     _auth_state: bool = field(init=False, default=False)
-    _access_token: Optional[str] = field(default=None)
-    _refresh_token: Optional[str] = field(default=None)
+    _access_token: str | None = field(default=None)
+    _refresh_token: str | None = field(default=None)
     _access_token_expires_in: int = field(default=0)
     _access_token_expires_at: float = field(default=0.0)
-    _token_read_func: Optional[Callable] = field(default=None)
-    _token_update_func: Optional[Callable] = field(default=None)
+    _token_read_func: Callable | None = field(default=None)
+    _token_update_func: Callable | None = field(default=None)
 
     def __post_init__(self) -> None:
         """Init the base resource field."""
         self._base_resource = PAPER_ENDPOINT if self.paper_trade else AUDIENCE_ENDPOINT
-        self._token_read_func = self._token_read if self._token_read_func is None else self._token_read_func
-        self._token_update_func = self._token_save if self._token_update_func is None else self._token_update_func
+        self._token_read_func = (
+            self._token_read if self._token_read_func is None else self._token_read_func
+        )
+        self._token_update_func = (
+            self._token_save if self._token_update_func is None else self._token_update_func
+        )
 
     @abstractmethod
     def _delete_request(
-        self, url: str, params: Optional[dict] = None, headers: Optional[dict] = None
-    ) -> Union[Response, Coroutine[Any, Any, Response]]:
+        self, url: str, params: dict | None = None, headers: dict | None = None
+    ) -> Response | Coroutine[Any, Any, Response]:
         """Submit a delete request to TradeStation."""
         pass
 
     @abstractmethod
     def _get_request(
-        self, url: str, params: Optional[dict] = None, headers: Optional[dict] = None
-    ) -> Union[Response, Coroutine[Any, Any, Response]]:
+        self, url: str, params: dict | None = None, headers: dict | None = None
+    ) -> Response | Coroutine[Any, Any, Response]:
         """Submit a get request to TradeStation."""
         pass
 
@@ -73,10 +81,10 @@ class BaseClient(ABC):
     def _post_request(
         self,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        data: Optional[Mapping[str, Any]] = None,
-    ) -> Union[Response, Coroutine[Any, Any, Response]]:
+        params: dict | None = None,
+        headers: dict | None = None,
+        data: Mapping[str, Any] | None = None,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """Submit a post request to TradeStation."""
         pass
 
@@ -84,10 +92,10 @@ class BaseClient(ABC):
     def _put_request(
         self,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        data: Optional[Mapping[str, Any]] = None,
-    ) -> Union[Response, Coroutine[Any, Any, Response]]:
+        params: dict | None = None,
+        headers: dict | None = None,
+        data: Mapping[str, Any] | None = None,
+    ) -> Response | Coroutine[Any, Any, Response]:
         """Submit a put request to TradeStation."""
         pass
 
@@ -140,7 +148,7 @@ class BaseClient(ABC):
                 url=TOKEN_ENDPOINT,
                 data=data,
             )
-        print('refreshed token')
+        print("refreshed token")
         # Save the token if the response was okay.
         if response.status_code == 200:
             self._token_save(response=response.json())
@@ -192,9 +200,9 @@ class BaseClient(ABC):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         filename = "ts_state.json"
         file_path = os.path.join(dir_path, filename)
-        state: Optional[dict] = None
+        state: dict | None = None
 
-        with open(file=file_path, mode="r") as state_file:
+        with open(file=file_path) as state_file:
             state |= json.load(fp=state_file)
 
         if isinstance(state, dict):
@@ -289,7 +297,7 @@ class BaseClient(ABC):
         self._token_validation()
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(url="users/{username}/accounts".format(username=user_id))
+        url_endpoint = self._api_endpoint(url=f"users/{user_id}/accounts")
 
         # define the arguments
         params = {"access_token": self._access_token}
@@ -391,7 +399,7 @@ class BaseClient(ABC):
         return self._get_request(url=url_endpoint, params=params)
 
     def get_positions(
-        self, account_keys: list[str | int], symbols: Optional[list[str]] = None
+        self, account_keys: list[str | int], symbols: list[str] | None = None
     ) -> Response | Awaitable[Response]:
         """Grabs all the account positions.
 
@@ -438,7 +446,10 @@ class BaseClient(ABC):
         return self._get_request(url=url_endpoint, params=params)
 
     def get_orders(
-        self, account_keys: list[str | int], page_size: int = 600, order_ids: Optional[list[str | int]] = None
+        self,
+        account_keys: list[str | int],
+        page_size: int = 600,
+        order_ids: list[str | int] | None = None,
     ) -> Response | Awaitable[Response]:
         """Grab all the account orders for a list of accounts.
 
@@ -479,7 +490,7 @@ class BaseClient(ABC):
 
         # Argument Validation, Order IDs
         if order_ids and len(order_ids) > 0 and len(order_ids) <= 50:
-            order_ids_str = f'/{",".join(map(str, order_ids))}'
+            order_ids_str = f"/{','.join(map(str, order_ids))}"
         elif order_ids and len(order_ids) > 50:
             raise ValueError("You cannot pass through more than 50 Orders.")
         else:
@@ -494,7 +505,9 @@ class BaseClient(ABC):
         }
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(url=f"brokerage/accounts/{account_keys_str}/orders{order_ids_str}")
+        url_endpoint = self._api_endpoint(
+            url=f"brokerage/accounts/{account_keys_str}/orders{order_ids_str}"
+        )
 
         return self._get_request(url=url_endpoint, params=params)
 
@@ -503,7 +516,7 @@ class BaseClient(ABC):
         account_keys: list[str | int],
         since: date,
         page_size: int = 600,
-        order_ids: Optional[list[str | int]] = None,
+        order_ids: list[str | int] | None = None,
     ) -> Response | Awaitable[Response]:
         """Grab all the account orders for a list of accounts.
 
@@ -547,7 +560,7 @@ class BaseClient(ABC):
 
         # Argument Validation, Order IDs
         if order_ids and len(order_ids) > 0 and len(order_ids) <= 50:
-            order_ids_str = f'/{",".join(map(str, order_ids))}'
+            order_ids_str = f"/{','.join(map(str, order_ids))}"
         elif order_ids and len(order_ids) > 50:
             raise ValueError("You cannot pass through more than 50 Orders.")
         else:
@@ -567,7 +580,9 @@ class BaseClient(ABC):
         }
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(f"brokerage/accounts/{account_keys_str}/historicalorders{order_ids_str}")
+        url_endpoint = self._api_endpoint(
+            f"brokerage/accounts/{account_keys_str}/historicalorders{order_ids_str}"
+        )
 
         return self._get_request(url=url_endpoint, params=params)
 
@@ -651,7 +666,7 @@ class BaseClient(ABC):
             raise ValueError("You may only send [1..50] symbols per request.")
 
         # define the endpoint.
-        url_endpoint = self._api_endpoint(f'marketdata/symbols/{",".join(symbols)}')
+        url_endpoint = self._api_endpoint(f"marketdata/symbols/{','.join(symbols)}")
 
         # define the arguments.
         params = {"access_token": self._access_token}
@@ -659,7 +674,7 @@ class BaseClient(ABC):
         return self._get_request(url=url_endpoint, params=params)
 
     def get_option_expirations(
-        self, underlying: str, strike_price: Optional[float] = None
+        self, underlying: str, strike_price: float | None = None
     ) -> Response | Awaitable[Response]:
         """Get the available option contract expiration dates for the underlying symbol.
 
@@ -680,7 +695,9 @@ class BaseClient(ABC):
 
         return self._get_request(url=url_endpoint, params=params)
 
-    def get_option_risk_reward(self, price: float, legs: list[dict[str, Any]]) -> Response | Awaitable[Response]:
+    def get_option_risk_reward(
+        self, price: float, legs: list[dict[str, Any]]
+    ) -> Response | Awaitable[Response]:
         """Analyze the risk vs. reward of a potential option trade.
 
         This endpoint is not applicable for option spread types with different expirations,
@@ -694,13 +711,7 @@ class BaseClient(ABC):
 
         Example Usage:
         ```
-        legs = [
-                {
-                    "Symbol": "string",
-                    "Quantity": 0,
-                    "TradeAction": "BUY"
-                }
-            ]
+        legs = [{"Symbol": "string", "Quantity": 0, "TradeAction": "BUY"}]
 
         client = get_option_risk_reward(4.20, legs)
         ```
@@ -738,10 +749,10 @@ class BaseClient(ABC):
     def get_option_strikes(
         self,
         underlying: str,
-        spreadType: Optional[str] = None,
-        strikeInterval: Optional[int] = None,
-        expiration: Optional[datetime] = None,
-        expiration2: Optional[datetime] = None,
+        spreadType: str | None = None,
+        strikeInterval: int | None = None,
+        expiration: datetime | None = None,
+        expiration2: datetime | None = None,
     ) -> Response | Awaitable[Response]:
         """Get the available strike prices for a spread type and expiration date.
 
@@ -810,8 +821,9 @@ class BaseClient(ABC):
 
         return self._get_request(url=url_endpoint, params=params)
 
-    
-    def stream_option_chain(self, ticker: str, expdate: str=None) -> Response | Awaitable[Response]:
+    def stream_option_chain(
+        self, ticker: str, expdate: str = None
+    ) -> Response | Awaitable[Response]:
         """Submit a list of orders.
 
         Arguments:
@@ -826,14 +838,15 @@ class BaseClient(ABC):
 
         # define the arguments.
         params = {
-             "content-type": "application/json",
-             "Authorization": 'Bearer '+ self._access_token}
+            "content-type": "application/json",
+            "Authorization": "Bearer " + self._access_token,
+        }
         if expdate:
             data = {"expdate": expdate}
             return requests.request("GET", url_endpoint, json=data, headers=params, stream=True)
-        else:            
+        else:
             return requests.request("GET", url_endpoint, headers=params, stream=True)
-    
+
     ###################
     # Order Execution #
     ###################
@@ -905,8 +918,9 @@ class BaseClient(ABC):
 
         # define the arguments.
         params = {
-             "content-type": "application/json",
-             "Authorization": 'Bearer '+ self._access_token}
+            "content-type": "application/json",
+            "Authorization": "Bearer " + self._access_token,
+        }
 
         return requests.request("POST", url_endpoint, json=orders, headers=params)
 
@@ -925,8 +939,9 @@ class BaseClient(ABC):
 
         # define the arguments.
         params = {
-             "content-type": "application/json",
-             "Authorization": 'Bearer '+ self._access_token}
+            "content-type": "application/json",
+            "Authorization": "Bearer " + self._access_token,
+        }
 
         return requests.request("POST", url_endpoint, json=order, headers=params)
 

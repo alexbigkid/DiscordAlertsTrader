@@ -5,7 +5,8 @@ Classes:
     - Client: Manages synchronous HTTP requests.
 """
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 import httpx
 
@@ -21,7 +22,7 @@ class Client(BaseClient):
     """
 
     def _delete_request(
-        self, url: str, params: Optional[dict] = None, headers: Optional[dict] = None
+        self, url: str, params: dict | None = None, headers: dict | None = None
     ) -> httpx.Response:
         """
         Submit a DELETE request to a given URL.
@@ -42,7 +43,9 @@ class Client(BaseClient):
 
         return response
 
-    def _get_request(self, url: str, params: Optional[dict] = None, headers: Optional[dict] = None) -> httpx.Response:
+    def _get_request(
+        self, url: str, params: dict | None = None, headers: dict | None = None
+    ) -> httpx.Response:
         """
         Submit a GET request to a given URL.
 
@@ -65,9 +68,9 @@ class Client(BaseClient):
     def _post_request(
         self,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        params: dict | None = None,
+        headers: dict | None = None,
+        data: Mapping[str, Any] | None = None,
     ) -> httpx.Response:
         """
         Submit a POST request to a given URL.
@@ -92,9 +95,9 @@ class Client(BaseClient):
     def _put_request(
         self,
         url: str,
-        params: Optional[dict] = None,
-        headers: Optional[dict] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        params: dict | None = None,
+        headers: dict | None = None,
+        data: Mapping[str, Any] | None = None,
     ) -> httpx.Response:
         """
         Submit a PUT request to a given URL.
