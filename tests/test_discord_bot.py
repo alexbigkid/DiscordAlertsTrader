@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import unittest
@@ -5,6 +6,9 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pandas as pd
+
+# Suppress logging output during tests
+logging.getLogger('DiscordAlertsTrader.discord_bot').setLevel(logging.CRITICAL)
 
 
 sys.path.append(os.path.dirname(__file__))
