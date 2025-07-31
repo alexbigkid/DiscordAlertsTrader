@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 
+
 # Suppress logging output during tests
 logging.getLogger('DiscordAlertsTrader.discord_bot').setLevel(logging.CRITICAL)
 
