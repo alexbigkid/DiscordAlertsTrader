@@ -1,4 +1,6 @@
 # DiscordAlertsTrader: *Discord Alerts AutoTrader Bot*
+![Tests](https://github.com/alexbigkid/DiscordAlertsTrader/actions/workflows/workflows.yml/badge.svg) [![codecov](https://codecov.io/gh/alexbigkid/DiscordAlertsTrader/branch/master/graph/badge.svg)](https://codecov.io/gh/alexbigkid/DiscordAlertsTrader)
+
 ________________________
 ![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/t/AdoNunes/DiscordAlertsTrader?color=red)
 ![PyPI](https://img.shields.io/pypi/v/DiscordAlertsTrader)
@@ -9,20 +11,20 @@ ________________________
 [![Discord](https://img.shields.io/discord/1123242366980075570.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/9ejghcjpar "realtime support / chat with the community and the team.")
 
  If you like this package, give it a star!
- 
+
 For an exe compiled version, go to [Releases](https://github.com/AdoNunes/DiscordAlertsTrader/releases)
 
 A Python package to automate trades from alerts shared in a Discord channel by analysts.
-The package parses these messages and executes trades from traders specified in the configuration file. 
-It tracks messages from all the channels, generates a portfolio from analysts and from trades executed, 
+The package parses these messages and executes trades from traders specified in the configuration file.
+It tracks messages from all the channels, generates a portfolio from analysts and from trades executed,
 provides live quotes to see actual alert profits (rather than prices stated in the alert), and can trigger
 an alert to open long or short a position, close it or update exits (target profit, stop loss).
 
 Trades are done through APIs of TradeStation, eTrade or webull (either a PT or SL order, no trailing stops).
-If no brokerage API key is provided, it will just print out the discord messages and track the 
+If no brokerage API key is provided, it will just print out the discord messages and track the
 analysts' portfolio. With an API key, it will track the current price of the alerts, besides executing trades.
 
-If in `config.ini`, `DO_BTO_TRADES = false`, no trades will be executed. 
+If in `config.ini`, `DO_BTO_TRADES = false`, no trades will be executed.
 
 
 ## GUI capabilities ##
@@ -31,7 +33,7 @@ If in `config.ini`, `DO_BTO_TRADES = false`, no trades will be executed.
 - Tracking trading signals with a message history tab for the channel
 - Tracking performance with real-time actual prices and returns.
 - Opening, closing, and updating trades through the GUI.
-- Calculate analysts' stats and provide options to test stats with maximum capital 
+- Calculate analysts' stats and provide options to test stats with maximum capital
 - Checking order and account status, and accessing current ticker prices.
 - Supporting manual trade execution through prompts if `auto_trade` is set to False in `config.ini` (not maintained).
 
@@ -39,9 +41,9 @@ If in `config.ini`, `DO_BTO_TRADES = false`, no trades will be executed.
 **Current Discord servers being used**:
 - **EnhancedMarket** TradeProElite (profitable strategies about 10-20k month that's what EnhancedMarket makes [fully pays $189/month membership], uses my software to send trade entry and exits alerts with minimal delay even for scalps and my bot to track trade' alerted PnL and market price PnL, full transparency. Good for learning how to trade with live sessions): [invite link](https://whop.com/tradeproelite/?d2c=true&directPlanId=plan_I8qtnuDILz6VE&pass=prod_KtXKwzfXMW7ck&a=transverseblouse3c34))
 - **Prosperity Trades** Vader the analyst uses my alerter bot that reads filled orders in webull and sends a discord alert, it also uses my tracking bot to register alerted and market PnL [invite link](https://whop.com/checkout/plan_hVOeBlJUWJRpP?d2c=true&a=transverseblouse3c34)
-- **Supreme alerts** Server with +30 analysts, your site for getting all the alerts you need [$69 month]. Use this [referral link](https://upgrade.chat/tradingalerts/p/dalertstrader) + add lifetime 10% off discount coupon: DAlertsTrader   
+- **Supreme alerts** Server with +30 analysts, your site for getting all the alerts you need [$69 month]. Use this [referral link](https://upgrade.chat/tradingalerts/p/dalertstrader) + add lifetime 10% off discount coupon: DAlertsTrader
 
-Supports any Discord channel with structured BTP/STC alerts as message contents (server_formatting.py has functions to change different server formattings, including embedded messages). It has over 20 custom analysts' formatting. 
+Supports any Discord channel with structured BTP/STC alerts as message contents (server_formatting.py has functions to change different server formattings, including embedded messages). It has over 20 custom analysts' formatting.
 
 
 Let me know if you find the package useful or need support by dropping me a DM or visiting the [discord server](https://discord.gg/9ejghcjpar)
@@ -85,7 +87,7 @@ manually trigger the alerts ;)**
      # Check if extras are included
      $extras = scoop bucket list | Select-String -Pattern '^extras$'
      if (-not $extras) {
-         # Add the extras bucket    
+         # Add the extras bucket
          scoop bucket add extras
      }
      # Install Miniconda3
@@ -99,7 +101,7 @@ manually trigger the alerts ;)**
     - For macOS:
      - Install Miniconda by selecting your OS version: https://docs.conda.io/en/latest/miniconda.html
      - Open the terminal (cmd + space -> terminal) and type conda install python=3.10, then follow the next steps inside the terminal
-      
+
 2. In the PowerShell terminal navigate to the directory where you want to clone the DiscordAlertsTrader package, e.g. type: `cd Desktop`.
 
 3. Clone the package from the GitHub repository and install the package and its dependencies using pip:
@@ -156,14 +158,14 @@ ____________
 
 **Webull PAPER trading only works for opening orders (BTO)**
 
-You will need to get a device ID, follow these steps to get DID, and then save it in the config.ini, along with credential details: 
+You will need to get a device ID, follow these steps to get DID, and then save it in the config.ini, along with credential details:
 [https://github.com/tedchou12/webull/wiki/Workaround-for-Login-Method-2](https://github.com/tedchou12/webull/wiki/Workaround-for-Login-%E2%80%90-Method-2)
 
 Trading pin is the 6 digit code used to unlock webull
 
 Webull does not have One Cancels the Other (OCO) so you can not pass a target profit and stoploss at the same time. Also there is no trailing stop.
-However, the package can create a local OCO, by passing in the alert or config default exits, a PT1 50%TS20% SL 50% (numbers can change). This will 
-create an SL order, and every 10 secs check the contract price until it reaches 50%, then will try to create a trailing stop of 20%, but because of webull 
+However, the package can create a local OCO, by passing in the alert or config default exits, a PT1 50%TS20% SL 50% (numbers can change). This will
+create an SL order, and every 10 secs check the contract price until it reaches 50%, then will try to create a trailing stop of 20%, but because of webull
 it will instead sell at PT.
 
 
@@ -171,7 +173,7 @@ it will instead sell at PT.
 _______________
 
 **READ THIS!!!
-ONLY FOR SOURCE VERSION, IT DOES NOT WORK IN THE COMPILED EXE VERSION. 
+ONLY FOR SOURCE VERSION, IT DOES NOT WORK IN THE COMPILED EXE VERSION.
 CURRENTLY, IBKR ONLY WORKS FOR PLACING BTO orders (open order). Close the trade directly in IBKR app**
 
 To access the IBKR account for trading and info is necessary to install
@@ -198,14 +200,14 @@ Follow the steps in IBKR Trader Workstation to enable API access
 
 ### Getting Quotes [IBKR]
 
-You need to subscribe to market data to get quotes. You can do this by logging into your IBKR account and going to 
+You need to subscribe to market data to get quotes. You can do this by logging into your IBKR account and going to
 IBKR web portal. Then type on the search bar "Market Data Subscriptions" and subscribe to the exchanges you want to get quotes from.
 
 
 ## Disclaimer
 _________
 
-This is still a Work in Progress project. I get good results using the package, If you plan to use it, **USE AT YOUR OWN RISK**. 
+This is still a Work in Progress project. I get good results using the package, If you plan to use it, **USE AT YOUR OWN RISK**.
 
 The code and package provided in this repository is provided "as is" and without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the author or contributors be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the code or package or the use or other dealings in the code or package.
 

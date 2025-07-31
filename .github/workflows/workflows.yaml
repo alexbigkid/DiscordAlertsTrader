@@ -3,12 +3,11 @@ name: DiscordAlertsTrader
 on:
     push:
         branches:
-            - '**'  # Run on all branch pushes
+            - main
         tags:
             - 'rel-patch'
             - 'rel-minor'
             - 'rel-major'
-    pull_request:
 
 permissions:
     contents: write  # Needed for handle-release-tags job to push tags
@@ -31,6 +30,7 @@ jobs:
               uses: astral-sh/ruff-action@v3
               with:
                 args: check
+
     unit-tests:
         name: Run on ${{ matrix.py }} - ${{ matrix.os }}
         needs: ruff
@@ -39,7 +39,7 @@ jobs:
             matrix:
                 # os: [ubuntu-latest]
                 os: [ ubuntu, macOS, windows ]
-                py: [ "3.12", "3.13"]
+                py: [ "3.10", "3.11", "3.12"]
 
         steps:
             - name: checkout repo
@@ -50,12 +50,12 @@ jobs:
                 python-version: ${{ matrix.py }}
             - name: Check runner
               if: ${{ !contains(matrix.os, 'windows') }}
-              run: |
-                .github/scripts/AgentInfo.sh
+              run: .github/scripts/AgentInfo.sh
             - name: Install uv
               uses: astral-sh/setup-uv@v3
             - name: Python Info
               run: |
+                uv python pin ${{ matrix.py }}
                 echo ""
                 echo "------------------------"
                 echo "Python version"
@@ -68,18 +68,32 @@ jobs:
                 python3 --version
             - name: install dependencies
               run: uv sync
-            # - name: install tox-gh
-            #   run: python -m pip install tox-gh
             - name: run unit tests
-              run: uv run pytest
+              run: make test
             # coverage has a problem with windows so not running it if windows OS
             - name: run coverage
               if: ${{ !cancelled() }}
-              run: uv run pytest --cov --cov-report=xml
+              run: make coverage
             - name: Upload coverage to Codecov
               if: ${{ !cancelled() }}
               uses: codecov/codecov-action@v5
               with:
                 files: ./coverage.xml
-                flags: pytest
+                flags: unittests
                 name: codecov-coverage
+
+    handle-release-tags:
+        name: Handle Release Tags
+        needs: [ruff, unit-tests]
+        runs-on: ubuntu-latest
+        if: always() && !cancelled()  # Run whether tests pass or fail, but not if cancelled due to concurrency
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+                token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+                persist-credentials: true
+
+            - name: Handle release tags
+              run: ./.github/scripts/handle_release_tags.sh "${{ needs.ruff.result }}" "${{ needs.unit-tests.result }}" "${{ github.ref_name }}"

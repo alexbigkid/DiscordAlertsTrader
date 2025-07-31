@@ -43,12 +43,13 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "ruff",
-    "twine",
+    "coverage",
+    "ruff"
 ]
 debug = [
     "build",
     "setuptools",
+    "twine",
     "wheel",
     "pip-tools",
     "pipdeptree",

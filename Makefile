@@ -11,12 +11,13 @@ help:
 	@echo "  setup        - Setup configuration file from example"
 	@echo "  run          - Run the DiscordAlertsTrader GUI application"
 	@echo "  test         - Run all tests (quiet mode)"
+	@echo "  coverage     - runs test, produces coverage and displays it"
 	@echo "  test_v       - Run all tests (verbose mode)"
 	@echo "  test_alerts  - Run AlertsTracker and AlertsTrader tests"
 	@echo "  test_parser  - Run message parser tests"
 	@echo "  test_gui     - Run GUI tests"
 	@echo "  lint         - Run ruff linter"
-	@echo "  lint_fix     - Run ruff linter with automatic fixes"
+	@echo "  lint_fix      - Run ruff linter with automatic fixes"
 	@echo "  format       - Format code with ruff"
 	@echo "  clean        - Clean build artifacts and cache files"
 	@echo "  build        - Build distribution packages"
@@ -45,6 +46,13 @@ run:
 # Testing
 test:
 	@PYTHONWARNINGS=ignore::FutureWarning uv run python -m unittest discover tests
+
+coverage:
+	@PYTHONWARNINGS=ignore::FutureWarning uv run coverage run --source DiscordAlertsTrader --omit "./tests/*" -m unittest discover tests
+	@echo
+	uv run coverage report
+	uv run coverage xml
+
 
 test_v:
 	uv run python -m unittest discover tests -v
