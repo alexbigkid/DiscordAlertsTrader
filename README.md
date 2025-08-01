@@ -1,5 +1,5 @@
 # DiscordAlertsTrader: *Discord Alerts AutoTrader Bot*
-![Tests](https://github.com/alexbigkid/DiscordAlertsTrader/actions/workflows/workflows.yml/badge.svg) [![codecov](https://codecov.io/gh/alexbigkid/DiscordAlertsTrader/branch/master/graph/badge.svg)](https://codecov.io/gh/alexbigkid/DiscordAlertsTrader)
+![Tests](https://github.com/alexbigkid/DiscordAlertsTrader/actions/workflows/workflows.yaml/badge.svg) [![codecov](https://codecov.io/gh/alexbigkid/DiscordAlertsTrader/branch/master/graph/badge.svg)](https://codecov.io/gh/alexbigkid/DiscordAlertsTrader)
 
 ________________________
 ![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/t/AdoNunes/DiscordAlertsTrader?color=red)
