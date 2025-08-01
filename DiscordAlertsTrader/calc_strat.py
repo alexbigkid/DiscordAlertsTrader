@@ -40,11 +40,11 @@ def calc_returns(
     filt_hour_to="",
     include_authors="",
     exclude_traders="",
-    exclude_symbols=[],
+    exclude_symbols=None,
     invert_contracts=False,
     initial_price="ask",
-    PT=[80],
-    pts_ratio=[1],
+    PT=None,
+    pts_ratio=None,
     TS=0,
     SL=45,
     TS_buy=0,
@@ -145,10 +145,16 @@ def calc_returns(
     params : dict
         parameters used for simulation
     """
+    if pts_ratio is None:
+        pts_ratio = [1]
+    if PT is None:
+        PT = [80]
+    if exclude_symbols is None:
+        exclude_symbols = []
     assert sum(pts_ratio) in [1, 0.9999999999999999], "pts_ratio must add up to 1"
     assert len(pts_ratio) == len(PT), "pts_ratio must have same length as PT"
 
-    with_theta = False if theta_client is None else True
+    with_theta = theta_client is not None
     param = {
         "last_days": last_days,
         "stc_date": stc_date,
@@ -250,7 +256,7 @@ def calc_returns(
     port["strategy-close_date"] = pd.NaT
     port["reason_skip"] = np.nan
 
-    do_margin = False if max_margin is None else True
+    do_margin = max_margin is not None
     if do_margin:
         port["margin"] = np.nan
         margin = 0
@@ -374,10 +380,7 @@ def calc_returns(
         elif port.loc[idx, "Type"] == "STO":
             bid = quotes["ask"]
             ask = quotes["bid"]
-        if "last" in quotes.columns:
-            last = quotes["last"]
-        else:
-            last = bid
+        last = quotes["last"] if "last" in quotes.columns else bid
         last = quotes["last"]
 
         dates = pd.to_datetime(quotes["timestamp"], unit="s", utc=True).dt.tz_convert(
@@ -460,15 +463,12 @@ def calc_returns(
             qty_t = max(1, short_under_amnt // port.loc[idx, "underlying"])
             if max_short_val is not None and qty_t * price_curr * 100 > max_short_val:
                 qty_t = max(max_short_val // (price_curr * 100), 1)
-            if min_trade_val is not None:
-                if qty_t * price_curr * 100 < min_trade_val:
-                    if verbose:
-                        print("skipping trade due to min trade val", row["Symbol"])
-                    port.loc[idx, "reason_skip"] = "min trade val"
-                    port.loc[idx, "strategy-close_date"] = dates.loc[1].tz_convert(
-                        "America/New_York"
-                    )
-                    continue
+            if min_trade_val is not None and qty_t * price_curr * 100 < min_trade_val:
+                if verbose:
+                    print("skipping trade due to min trade val", row["Symbol"])
+                port.loc[idx, "reason_skip"] = "min trade val"
+                port.loc[idx, "strategy-close_date"] = dates.loc[1].tz_convert("America/New_York")
+                continue
         elif trade_amount is None:
             qty_t = row["Qty"]
         elif trade_amount > 1:
@@ -634,7 +634,7 @@ def process_quotes(
             # print("converted_dates", converted_dates)
 
             # Check if all trade dates have quotes available
-            if all([d in converted_dates for d in all_dates]) and "last" in quotes.columns:
+            if all(d in converted_dates for d in all_dates) and "last" in quotes.columns:
                 load_from_disk = True
 
         # If quotes are not loaded from disk, fetch them from the source
@@ -689,7 +689,9 @@ def process_quotes(
     return quotes, port
 
 
-def generate_report(port, param={}, no_quote=None, verbose=True):
+def generate_report(port, param=None, no_quote=None, verbose=True):
+    if param is None:
+        param = {}
     if no_quote is not None and verbose:
         print(f"N trades with no quote: {len(no_quote)}")
 
@@ -702,8 +704,7 @@ def generate_report(port, param={}, no_quote=None, verbose=True):
     port = port[port["strategy-PnL"].notnull()]
     port.loc[:, "win"] = port["strategy-PnL"] > 0
     print(
-        "Pnl alert: %.2f, Pnl actual: %.2f, Pnl strategy: %.2f, win rate: %.2f"
-        % (
+        "Pnl alert: {:.2f}, Pnl actual: {:.2f}, Pnl strategy: {:.2f}, win rate: {:.2f}".format(
             port["PnL"].mean(),
             port["PnL-actual"].mean(),
             port["strategy-PnL"].mean(),
@@ -711,8 +712,9 @@ def generate_report(port, param={}, no_quote=None, verbose=True):
         )
     )
     print(
-        "Pnl $ alert: $%.2f, Pnl actual: $%.2f, Pnl strategy: $%.2f"
-        % (port["PnL$"].sum(), port["PnL$-actual"].sum(), port["strategy-PnL$"].sum())
+        "Pnl $ alert: ${:.2f}, Pnl actual: ${:.2f}, Pnl strategy: ${:.2f}".format(
+            port["PnL$"].sum(), port["PnL$-actual"].sum(), port["strategy-PnL$"].sum()
+        )
     )
 
     # Perform the groupby operation and apply the aggregation functions
@@ -734,8 +736,16 @@ def generate_report(port, param={}, no_quote=None, verbose=True):
     return result_td
 
 
-def grid_search(params_dict, PT=[60], TS=[0], SL=[45], TS_buy=[5, 10, 15, 20, 25]):
+def grid_search(params_dict, PT=None, TS=None, SL=None, TS_buy=None):
     # params_dict for calc_returns
+    if TS_buy is None:
+        TS_buy = [5, 10, 15, 20, 25]
+    if SL is None:
+        SL = [45]
+    if TS is None:
+        TS = [0]
+    if PT is None:
+        PT = [60]
     res = []
     port_out = None
     for pt in PT:

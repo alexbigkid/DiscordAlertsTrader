@@ -1,15 +1,19 @@
+"""ibkr_api.py"""
+
 import random
 import time
 from datetime import datetime
 
 import nest_asyncio
-from ib_async import *
+from ib_async import IB, Contract, Option, Order
 
 from DiscordAlertsTrader.brokerages import BaseBroker
 from DiscordAlertsTrader.configurator import cfg
 
 
 class IBKR(BaseBroker):
+    """IBKR brokerage class for DiscordAlertsTrader."""
+
     def __init__(self, accountId=None):
         self.name = "ibkr"
         self.accountId = accountId
@@ -23,10 +27,7 @@ class IBKR(BaseBroker):
         ib.connect(cfg["IBKR"]["host"], cfg["IBKR"]["port"], clientId=random.randint(1, 1000))
         self.ib.sleep(0.1)
         method = getattr(ib, method_name)
-        if is_list:
-            resp = method(args)
-        else:
-            resp = method(**args)
+        resp = method(args) if is_list else method(**args)
         ib.sleep(0.1)
         ib.disconnect()
         return resp
@@ -216,11 +217,7 @@ class IBKR(BaseBroker):
         order.orderType = order_dict["orderType"]
         order.tif = order_dict["enforce"]
         order.transmit = True
-        order.outsideRth = (
-            order_dict["outsideRegularTradingHour"]
-            if "outsideRegularTradingHour" in order_dict
-            else False
-        )
+        order.outsideRth = order_dict.get("outsideRegularTradingHour", False)
 
         if order.orderType == "LMT":
             order.lmtPrice = order_dict["lmtPrice"]
@@ -228,9 +225,8 @@ class IBKR(BaseBroker):
         if order.orderType == "STP":
             order.auxPrice = order_dict["stpPrice"]
 
-        if order.orderType == "TRAIL":
-            if (order_dict["trial_type"] == "DOLLAR") or (order_dict["trial_type"] == "PERCENT"):
-                order.trailStopPrice = order_dict["trial_value"]
+        if order.orderType == "TRAIL" and (order_dict["trial_type"] in ["DOLLAR", "PERCENT"]):
+            order.trailStopPrice = order_dict["trial_value"]
 
         if order.orderType == "STP LMT":
             order.lmtPrice = order_dict["lmtPrice"]

@@ -29,11 +29,11 @@ class TestAlertsTracker(unittest.TestCase):
         sell = "BTC 3  AAPL 100c 8/5 @1"
         pars, order = parse_trade_alert(buy)
         order["Trader"] = "test"
-        msg_b = tracker.trade_alert(order, live_alert=False, channel=None)
+        tracker.trade_alert(order, live_alert=False, channel=None)
         pars, order = parse_trade_alert(sell)
         order["Trader"] = "test"
         order["Date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        msg_s = tracker.trade_alert(order, live_alert=False, channel=None)
+        tracker.trade_alert(order, live_alert=False, channel=None)
 
         trade = tracker.portfolio.loc[0]
         self.assertTrue(round(trade["PnL"], 2) == 33.33)

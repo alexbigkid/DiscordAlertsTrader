@@ -126,7 +126,9 @@ class AlertsTrader:
         print(Back.GREEN + str_msg)
         self.queue_prints.put([str_msg, "", "green"])
 
-    def save_logs(self, csvs=["port", "alert"]):
+    def save_logs(self, csvs=None):
+        if csvs is None:
+            csvs = ["port", "alert"]
         if "port" in csvs:
             self.portfolio.to_csv(self.portfolio_fname, index=False)
         if "alert" in csvs:
@@ -137,9 +139,9 @@ class AlertsTrader:
         if order["action"] in ["BTO", "STO"]:
             for i in range(1, self.max_stc_orders):
                 pt = f"PT{i}"
-                if pt in order.keys() and order[pt] is not None:
+                if pt in order and order[pt] is not None:
                     pars_str = pars_str + f" {pt}: {order[pt]}"
-                if "SL" in order.keys() and order["SL"] is not None:
+                if "SL" in order and order["SL"] is not None:
                     pars_str = pars_str + f" SL: {order['SL']}"
         elif order["action"] in ["STC", "BTC"]:
             pars_str = pars_str + f" Qty:{order['Qty']}({int(order['xQty'] * 100)}%)"
@@ -214,7 +216,7 @@ class AlertsTrader:
             if (
                 resp is None
                 or len(resp) == 0
-                or symbol not in resp.keys()
+                or symbol not in resp
                 or resp[symbol].get("description") == "Symbol not found"
             ):
                 str_msg = f"{symbol} not found during price quote"
@@ -231,7 +233,7 @@ class AlertsTrader:
         if pflag:
             return quote
         else:
-            return "CURRENTLY @%.2f" % quote
+            return f"CURRENTLY @{quote:.2f}"
 
     def confirm_and_send(self, order, pars, order_funct):
         resp, order, ord_chngd = self.notify_alert(order, pars)
@@ -501,7 +503,7 @@ class AlertsTrader:
                         trade_capitals.get(order["Trader"], trade_capitals["default"])
                     )
 
-                    if "Qty" not in order.keys() or order["Qty"] is None:
+                    if "Qty" not in order or order["Qty"] is None:
                         if default_bto_qty == "buy_one":
                             order["Qty"] = 1
                         elif default_bto_qty == "trade_capital":
@@ -527,7 +529,7 @@ class AlertsTrader:
             # Manual trade
             resp = input(Back.RED + question + "\n Make trade? (y, n or (c)hange) \n").lower()
 
-            if resp in ["c", "change", "y", "yes"] and "Qty" not in order.keys():
+            if resp in ["c", "change", "y", "yes"] and "Qty" not in order:
                 order["Qty"] = int(
                     input(
                         "Order qty not available."
@@ -588,7 +590,7 @@ class AlertsTrader:
         if STCn is None:
             STCn = range(1, self.max_stc_orders)
         position = self.portfolio.iloc[open_trade]
-        if type(STCn) == int:
+        if isinstance(STCn, int):
             STCn = [STCn]
 
         for i in STCn:
@@ -650,7 +652,7 @@ class AlertsTrader:
         }
 
         if order["action"] == "ExitUpdate" and isOpen:
-            if order.get("isopen") == False:
+            if not order.get("isopen"):
                 # close position command
                 self.close_open_exit_orders(open_trade)
                 self.portfolio.loc[open_trade, "isOpen"] = 0
@@ -672,7 +674,7 @@ class AlertsTrader:
                         ordID = trade["ordID"]
                     order_status = self.bksession.cancel_order(ordID)
                     order_status = order_status.replace("UROUT", "CANCELED")
-                    self.portfolio.loc[i, "BTO-avg-Status"] = order_status
+                    self.portfolio.loc[open_trade, "BTO-avg-Status"] = order_status
 
                     symb = self.portfolio.loc[open_trade, "Symbol"]
                     msg = f"Cancelled avg order for {symb}"
@@ -705,7 +707,7 @@ class AlertsTrader:
             for i in range(1, 3):
                 if not pd.isnull(self.portfolio.loc[open_trade, f"STC{i}-alerted"]):
                     istc = i + 1
-            if istc is not None and any(["PT" in k for k in new_plan.keys()]):
+            if istc is not None and any("PT" in k for k in new_plan):
                 new_plan_c = new_plan.copy()
                 for i in range(1, self.max_stc_orders):
                     if new_plan.get(f"PT{i}"):
@@ -720,7 +722,7 @@ class AlertsTrader:
 
             renew_plan = eval(old_plan)
             if renew_plan is not None or renew_plan != {}:
-                for k in new_plan.keys():
+                for k in new_plan:
                     renew_plan[k] = new_plan[k]
             else:
                 renew_plan = new_plan
@@ -744,13 +746,12 @@ class AlertsTrader:
 
             # Get exit plan and add default vals if needed
             exit_plan = parse_exit_plan(order)
-            if action == "BTO":
-                if (
-                    len(self.cfg["order_configs"]["default_exits"])
-                    and exit_plan.get("PT1") is None
-                    and exit_plan.get("SL") is None
-                ):
-                    exit_plan = eval(self.cfg["order_configs"]["default_exits"])
+            if action == "BTO" and (
+                len(self.cfg["order_configs"]["default_exits"])
+                and exit_plan.get("PT1") is None
+                and exit_plan.get("SL") is None
+            ):
+                exit_plan = eval(self.cfg["order_configs"]["default_exits"])
             # Do BTO TrailingStop
             if order.get("open_trailingstop"):
                 # get TS value, convet from percentage if needed
@@ -1285,9 +1286,9 @@ class AlertsTrader:
                 order_info = order_info["childOrderStrategies"][1]
             sold_unts = order_info["orderLegCollection"][0]["quantity"]
 
-        if "price" in order_info.keys():
+        if "price" in order_info:
             stc_price = order_info["price"]
-        elif "stopPrice" in order_info.keys():
+        elif "stopPrice" in order_info:
             stc_price = order_info["stopPrice"]
 
         bto_price = self.portfolio.loc[open_trade, "Price"]
@@ -1501,10 +1502,7 @@ class AlertsTrader:
                 if quote_opt == -1:
                     continue
                 if quote_opt <= stp_price * 1.01:  # 1%
-                    if pd.isna(trade["trader_qty"]):
-                        qty = 1
-                    else:
-                        qty = int(trade["trader_qty"])
+                    qty = 1 if pd.isna(trade["trader_qty"]) else int(trade["trader_qty"])
                     order = {
                         "Symbol": trade["Symbol"],
                         "action": "BTO",
@@ -1822,7 +1820,7 @@ class AlertsTrader:
 
                         self.portfolio.loc[i, "BTO-avg-Status"] = order_status
                         # if np.integer or int, turn to str
-                        if isinstance(self.portfolio.loc[i, "ordID"], (np.integer, float)):
+                        if isinstance(self.portfolio.loc[i, "ordID"], np.integer | float):
                             self.portfolio.loc[i, "ordID"] = str(self.portfolio.loc[i, "ordID"])
                         self.portfolio.loc[i, "ordID"] += f",{order_id}"
 
@@ -2096,11 +2094,10 @@ class AlertsTrader:
                     break
 
                 # Check that is below actual price
-                if trade["Type"] == "BTO":
-                    if order.get("SL") is not None and isinstance(order.get("SL"), (int, float)):
-                        order["action"] = trade["Type"].replace("STO", "BTC").replace("BTO", "STC")
-                        order = self.SL_below_market(order)
-                        order = self.round_order_price(order, trade)
+                if trade["Type"] == "BTO" and order.get("SL") is not None and isinstance(order.get("SL"), int | float):
+                    order["action"] = trade["Type"].replace("STO", "BTC").replace("BTO", "STC")
+                    order = self.SL_below_market(order)
+                    order = self.round_order_price(order, trade)
 
                 if ord_func is not None and order["Qty"] > 0:
                     order = self.round_order_price(order, trade)
@@ -2290,10 +2287,7 @@ class AlertsTrader:
     def calculate_stoploss(self, order, trade, SL: str):
         "Calculate stop loss price with increment, SL: e.g. '40%"
         if isinstance(SL, str):
-            if "%" in SL:
-                SL = trade["Price"] * float(SL.replace("%", "")) / 100
-            else:
-                SL = float(SL)
+            SL = trade["Price"] * float(SL.replace("%", "")) / 100 if "%" in SL else float(SL)
 
         order["trail_stop_const"] = self.round_price(SL, trade)
         return order
@@ -2301,26 +2295,17 @@ class AlertsTrader:
     def round_order_price(self, order, trade):
         # Round SL price to nearest increment
         for exit in ["price", "PT", "SL"] + [f"PT{i}" for i in range(1, self.max_stc_orders)]:
-            if order.get(exit) is not None and isinstance(order.get(exit), (int, float)):
+            if order.get(exit) is not None and isinstance(order.get(exit), int | float):
                 order[exit] = self.round_price(order.get(exit), trade)
         return order
 
     def round_price(self, price, trade):
         # Round SL price to nearest increment
         if self.bksession.name in ["tda"]:
-            if "SPXW" in trade["Symbol"]:
-                if price < 3.0:
-                    increment = 0.05
-                else:
-                    increment = 0.10
-            else:
-                increment = 0.01
+            increment = (0.05 if price < 3.0 else 0.1) if "SPXW" in trade["Symbol"] else 0.01
         elif self.bksession.name == "ts":
             if "SPXW" in trade["Symbol"]:
-                if price < 3.0:
-                    increment = 0.05
-                else:
-                    increment = 0.10
+                increment = 0.05 if price < 3.0 else 0.1
             elif price > 3:
                 increment = 0.05
             else:
@@ -2328,10 +2313,7 @@ class AlertsTrader:
         elif trade["Symbol"] in ["SPY", "QQQ", "IWM"] and self.bksession.name == "etrade":
             increment = 0.01  # ETFs trade in penny increments
         elif self.bksession.name == "etrade":
-            if price < 3.0:
-                increment = 0.05
-            else:
-                increment = 0.10
+            increment = 0.05 if price < 3.0 else 0.1
         else:
             increment = 0.01
 

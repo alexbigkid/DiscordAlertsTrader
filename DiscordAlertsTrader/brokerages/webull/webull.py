@@ -74,10 +74,12 @@ class webull:
         if path:
             filename = os.path.join(path, filename)
         if os.path.exists(filename):
-            did = pickle.load(open(filename, "rb"))
+            with open(filename, "rb") as f:
+                did = pickle.load(f)
         else:
             did = uuid.uuid4().hex
-            pickle.dump(did, open(filename, "wb"))
+            with open(filename, "wb") as f:
+                pickle.dump(did, f)
         return did
 
     def _set_did(self, did, path=""):
@@ -99,7 +101,8 @@ class webull:
         filename = "did.bin"
         if path:
             filename = os.path.join(path, filename)
-        pickle.dump(did, open(filename, "wb"))
+        with open(filename, "wb") as f:
+            pickle.dump(did, f)
         return True
 
     def build_req_headers(
@@ -201,10 +204,7 @@ class webull:
         )
         # data = response.json()
 
-        if response.status_code == 200:
-            return True
-        else:
-            return False
+        return response.status_code == 200
 
     def check_mfa(self, username="", mfa=""):
         account_type = self.get_account_type(username)
@@ -515,7 +515,7 @@ class webull:
             try:
                 tId = str(self.get_ticker(stock))
             except ValueError as _e:
-                raise ValueError(f"Could not find ticker for stock {stock}")
+                raise ValueError(f"Could not find ticker for stock {stock}") from _e
         response = requests.get(self._urls.stock_detail(tId), headers=headers, timeout=self.timeout)
         result = response.json()
         return result
@@ -556,7 +556,7 @@ class webull:
             try:
                 tId = str(self.get_ticker(stock))
             except ValueError as _e:
-                raise ValueError(f"Could not find ticker for stock {stock}")
+                raise ValueError(f"Could not find ticker for stock {stock}") from _e
         response = requests.get(self._urls.quotes(tId), headers=headers, timeout=self.timeout)
         result = response.json()
         return result
@@ -659,7 +659,7 @@ class webull:
         modifiedOrderType = orderType or order["orderType"]
         modifiedOutsideRegularTradingHour = (
             outsideRegularTradingHour
-            if type(outsideRegularTradingHour) == bool
+            if isinstance(outsideRegularTradingHour, bool)
             else order["outsideRegularTradingHour"]
         )
         modifiedEnforce = enforce or order["timeInForce"]
@@ -981,7 +981,7 @@ class webull:
             try:
                 tId = str(self.get_ticker(stock))
             except ValueError as _e:
-                raise ValueError(f"Could not find ticker for stock {stock}")
+                raise ValueError(f"Could not find ticker for stock {stock}") from _e
         headers = self.build_req_headers()
         params = {"tickerId": tId, "derivativeIds": optionId}
         return requests.get(
@@ -1237,7 +1237,7 @@ class webull:
             raise Exception("alerts_remove failed", response.status_code, response.reason)
         return True
 
-    def alerts_add(self, stock=None, frequency=1, interval=1, priceRules=[], smartRules=[]):
+    def alerts_add(self, stock=None, frequency=1, interval=1, priceRules=None, smartRules=None):
         """
         add price/percent/volume alert
         frequency: 1 is once a day, 2 is once a minute
@@ -1253,6 +1253,10 @@ class webull:
         smartRules = [{'type':'earnPre','active':'on'},{'type':'fastUp','active':'on'},{'type':'fastDown','active':'on'},
             {'type':'week52Up','active':'on'},{'type':'week52Down','active':'on'},{'type':'day5Down','active':'on'}]
         """
+        if smartRules is None:
+            smartRules = []
+        if priceRules is None:
+            priceRules = []
         headers = self.build_req_headers()
 
         rule_keys = ["value", "field", "remark", "type", "active"]
@@ -1752,7 +1756,7 @@ class webull:
             return response.json()["portfolioList"]
         else:
             list_ticker = response.json()["portfolioList"][0].get("tickerList")
-            return list(map(lambda x: x.get("symbol"), list_ticker))
+            return [x.get("symbol") for x in list_ticker]
 
     def get_account_type(self, username=""):
         try:
@@ -2037,7 +2041,4 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--use-paper", help="Use paper account instead.", action="store_true")
     args = parser.parse_args()
 
-    if args.use_paper:
-        wb = paper_webull()
-    else:
-        wb = webull()
+    wb = paper_webull() if args.use_paper else webull()

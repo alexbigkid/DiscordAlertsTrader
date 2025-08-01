@@ -55,8 +55,8 @@ class eTrade(BaseBroker):
         for ix in range(5):
             try:
                 return self._get_session()
-            except:
-                print(ix, "Could not get session, trying again")
+            except Exception as e:
+                print(ix, "Could not get session, trying again:", e)
                 time.sleep(1)
         raise Exception("Could not get session")
 
@@ -66,8 +66,8 @@ class eTrade(BaseBroker):
             try:
                 request_token = oauth.get_access_token(verifier_code)
                 return request_token
-            except:
-                print(f"Could not get token, trying again {ix}/3")
+            except Exception as e:
+                print(f"Could not get token, trying again {ix}/3:", e)
                 time.sleep(1)
         raise Exception("Could not get token")
 
@@ -98,8 +98,8 @@ class eTrade(BaseBroker):
                 self.tokens = json.load(f)
             try:
                 return sessions()
-            except:
-                print("Loaded tokens expired, requesting new tokens")
+            except Exception as e:
+                print("Loaded tokens expired, requesting new tokens:", e)
                 os.remove(self.token_fname)
 
         # if tokens not valid, get new ones
@@ -174,7 +174,8 @@ class eTrade(BaseBroker):
 
         try:
             data = self.account_session.get_account_portfolio(self.accountIdKey, resp_format="json")
-        except:
+        except Exception as e:
+            print("Could not get account portfolio:", e)
             return acc_inf
         # Handle and parse response
         if (
@@ -214,15 +215,15 @@ class eTrade(BaseBroker):
     def get_positions_orders(self):
         try:
             acc_inf = self.get_account_info()
-        except:
-            print("Could not get account info")
+        except Exception as e:
+            print("Could not get account info:", e)
             return [], []
         df_pos = pd.DataFrame(
             columns=["symbol", "asset", "type", "Qty", "Avg Price", "PnL", "PnL %"]
         )
 
         for pos in acc_inf["securitiesAccount"]["positions"]:
-            long = True if pos["longQuantity"] > 0 else False
+            long = pos["longQuantity"] > 0
 
             pos_inf = {
                 "symbol": pos["instrument"]["symbol"],
@@ -247,10 +248,7 @@ class eTrade(BaseBroker):
         match = re.search(exp, opt_ticker, re.IGNORECASE)
         if match:
             symbol, mnt, day, yer, type, strike = match.groups()
-            if type.lower() == "c":
-                type = "Call"
-            else:
-                type = "Put"
+            type = "Call" if type.lower() == "c" else "Put"
             converted_code = f"{symbol}:20{yer}:{mnt}:{day}:{type}:{strike}"
             return converted_code
         else:

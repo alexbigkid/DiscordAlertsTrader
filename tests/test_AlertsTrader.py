@@ -162,7 +162,7 @@ class TestAlertsTrader(unittest.TestCase):
         # assert expected values
         trade = trader.portfolio.loc[0]
         for exp, val in expected.items():
-            if not trade[exp] == val:
+            if trade[exp] != val:
                 print(f"Expected {exp} = {val} but got {trade[exp]}")
             if isinstance(trade[exp], float):
                 self.assertAlmostEqual(trade[exp], val, places=2)
@@ -302,7 +302,7 @@ class TestAlertsTrader(unittest.TestCase):
         # assert expected values
         trade = trader.portfolio.loc[0]
         for exp, val in expected.items():
-            if not trade[exp] == val:
+            if trade[exp] != val:
                 print(f"Expected {exp} = {val} but got {trade[exp]}")
             if isinstance(trade[exp], float):
                 self.assertAlmostEqual(trade[exp], val, places=2)

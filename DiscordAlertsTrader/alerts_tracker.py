@@ -79,9 +79,8 @@ class AlertsTracker:
             order["Qty"] = 1
 
         order["Actual Cost"] = order.get("price_actual", None)
-        if order["action"] in ["BTO", "STC", "STO", "BTC"] and live_alert:
-            if order.get("Actual Cost", "None") == "None":
-                order["Actual Cost"] = self.price_now(order["Symbol"], order["action"])
+        if order["action"] in ["BTO", "STC", "STO", "BTC"] and live_alert and order.get("Actual Cost", "None") == "None":
+            order["Actual Cost"] = self.price_now(order["Symbol"], order["action"])
 
         if (open_trade is None or self.do_avg is False) and order["action"] in ["BTO", "STO"]:
             str_act = self.make_BTO(order, channel)
@@ -147,10 +146,7 @@ class AlertsTracker:
 
     def make_BTO_Avg(self, order, open_trade):
         actual_Avg = self.portfolio.loc[open_trade, "Avged"]
-        if np.isnan(actual_Avg):
-            actual_Avg = 1
-        else:
-            actual_Avg = int(actual_Avg + 1)
+        actual_Avg = 1 if np.isnan(actual_Avg) else int(actual_Avg + 1)
 
         old_price = self.portfolio.loc[open_trade, "Price"]
         old_price = eval(old_price) if isinstance(old_price, str) else old_price
@@ -242,10 +238,7 @@ class AlertsTracker:
         quotes = quotes[msk].reset_index(drop=True)
 
         # first price will be the actual
-        if not pd.isnull(trade["Price-actual"]):
-            price0 = trade["Price-actual"]
-        else:
-            price0 = trade["Price"]
+        price0 = trade["Price-actual"] if not pd.isnull(trade["Price-actual"]) else trade["Price"]
         quotes.loc[0, " quote"] = price0
 
         # Calculate trailingStops
@@ -313,15 +306,9 @@ def calc_stc_prices(trade, order=None):
     bto_price_al = trade["Price-actual"]
 
     if not order.get("expired", False):
-        if order["Qty"] is None:
-            Qty = 1
-        else:
-            Qty = order["Qty"]
+        Qty = 1 if order["Qty"] is None else order["Qty"]
     else:
-        if pd.isnull(trade["STC-Qty"]):
-            Qty = trade["Qty"]
-        else:
-            Qty = trade["Qty"] - trade["STC-Qty"]
+        Qty = trade["Qty"] if pd.isnull(trade["STC-Qty"]) else trade["Qty"] - trade["STC-Qty"]
 
     if isinstance(bto_price, str):
         bto_price = np.mean(eval(bto_price.replace("/", ",")))

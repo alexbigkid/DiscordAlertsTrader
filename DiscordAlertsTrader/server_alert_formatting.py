@@ -128,11 +128,11 @@ def embed_to_content(message_):
     """Convert embed message to content message"""
 
     message = MessageCopy(message_)
-    if (message.content.startswith("<@") and len(message.content.split())) == 1 or (
-        message.content.startswith("@") and len(message.content.split())
-    ):
-        if message.embeds:
-            message.content = message.embeds[0].description
+    if (
+        (message.content.startswith("<@") and len(message.content.split())) == 1
+        or (message.content.startswith("@") and len(message.content.split()))
+    ) and message.embeds:
+        message.content = message.embeds[0].description
     return message
 
 
@@ -164,7 +164,7 @@ def prosperitytrades_formatting(message_):
 
     # Change bot to author
     if message_.author.name.lower() == "vader-alerts" or message_.author.name == "RedSaberSwings":
-        message = MessageCopy(message_)
+        MessageCopy(message_)
         message_.author.name = "lordvader32"
         message_.author.discriminator = "0"
         return message_
@@ -275,10 +275,7 @@ def brando_trades(message_):
         match = re.search(pattern, alert, re.IGNORECASE)
         if match:
             ticker, month, day, strike, price = match.groups()
-            if month == "DEC":
-                year = "24"
-            else:
-                year = "25"
+            year = "24" if month == "DEC" else "25"
             expdate = convert_date(f"{day.zfill(2)}{month[:3].upper()}{year}")
 
             action = "BTO"
@@ -291,10 +288,7 @@ def brando_trades(message_):
         match = re.search(pattern, alert, re.IGNORECASE)
         if match:
             ticker, month, day, strike, price, position = match.groups()
-            if month == "DEC":
-                year = "24"
-            else:
-                year = "25"
+            year = "24" if month == "DEC" else "25"
             expdate = convert_date(f"{day.zfill(2)}{month[:3].upper()}{year}")
 
             action = "STC"
@@ -534,27 +528,20 @@ def nitro_formatting(message_):
             alert += mb.description
     if not len(alert):
         alert = message.content
-    if len(alert):
-        if "Entry" in alert:
-            contract_match = re.search(
-                r"\*\*Contract:\*\*[ ]+([A-Z]+)[ ]+?(\d{1,2}\/\d{1,2})?[ ]*?\$?([0-9]+)([cCpP])",
-                alert,
-            )
-            fill_match = re.search(r"\*\*Price:\*\* ?\$?([\d.]+)", alert)
+    if len(alert) and "Entry" in alert:
+        contract_match = re.search(
+            r"\*\*Contract:\*\*[ ]+([A-Z]+)[ ]+?(\d{1,2}\/\d{1,2})?[ ]*?\$?([0-9]+)([cCpP])",
+            alert,
+        )
+        fill_match = re.search(r"\*\*Price:\*\* ?\$?([\d.]+)", alert)
 
-            if contract_match:
-                contract, exp_date, strike, otype = contract_match.groups()
-                if fill_match is not None:
-                    price = float(fill_match.groups()[0])
-                else:
-                    price = None
-                if exp_date is None:
-                    if contract in ["QQQ", "SPY", "IWM"]:
-                        exp_date = "0DTE"
-                    else:
-                        exp_date = "Weeklies"
-                bto = f"BTO {contract} {strike}{otype.upper()} {exp_date} @{price}"
-                alert += format_0dte_weeklies(bto, message, False)
+        if contract_match:
+            contract, exp_date, strike, otype = contract_match.groups()
+            price = float(fill_match.groups()[0]) if fill_match is not None else None
+            if exp_date is None:
+                exp_date = "0DTE" if contract in ["QQQ", "SPY", "IWM"] else "Weeklies"
+            bto = f"BTO {contract} {strike}{otype.upper()} {exp_date} @{price}"
+            alert += format_0dte_weeklies(bto, message, False)
 
     if len(alert):
         message.content = alert
@@ -695,10 +682,7 @@ def xtrades_formatting(message_):
 
             market_pattern = re.compile(r"(?:market|current) : \$(\d+(?:\.\d+)?)")
             match = market_pattern.search(msg)
-            if match:
-                price = match.group(1)
-            else:
-                price = f"{price} (alert price)"
+            price = match.group(1) if match else f"{price} (alert price)"
 
             if strike is not None:
                 expiration_date = datetime.strptime(expiration_date, "%b %d %Y").strftime(
@@ -761,10 +745,7 @@ def makeplays_challenge_formatting(message_):
             qty, ticker, strike, otype, expDate, price = match.groups()
         else:
             qty, ticker, expDate, strike, otype, price = match.groups()
-        if qty is None:
-            qty = ""
-        else:
-            qty = f" {qty}"
+        qty = "" if qty is None else f" {qty}"
         if expDate is None:
             if ticker in ["SPY", "QQQ", "IWM", "DIA"]:
                 bto = f"BTO{qty} {ticker} {strike.upper()}{otype[0]} 0DTE @{price}"
@@ -1347,10 +1328,7 @@ def bear_alerts(message_):
                 return message
 
         contract, exp_date, strike, otype = contract_match.groups()
-        if fill_match is not None:
-            price = float(fill_match.groups()[0])
-        else:
-            price = None
+        price = float(fill_match.groups()[0]) if fill_match is not None else None
         alert += f"BTO {contract} {strike}{otype.upper()} {exp_date} @{price} {type_al}"
 
     elif any(a in alert.lower() for a in ["trim", "closing", "full profit", "fully close"]):

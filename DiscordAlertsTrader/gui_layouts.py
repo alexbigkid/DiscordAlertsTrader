@@ -151,10 +151,7 @@ def trigger_alerts_layout():
 
 
 def layout_portfolio(data_n_headers, font_body, font_header):
-    if data_n_headers[0] == []:
-        values = ["" * 21]
-    else:
-        values = data_n_headers[0]
+    values = ["" * 21] if data_n_headers[0] == [] else data_n_headers[0]
 
     layout = [
         [
@@ -243,10 +240,7 @@ def layout_portfolio(data_n_headers, font_body, font_header):
 
 
 def layout_traders(data_n_headers, font_body, font_header):
-    if data_n_headers[0] == []:
-        values = ["" * 21]
-    else:
-        values = data_n_headers[0]
+    values = ["" * 21] if data_n_headers[0] == [] else data_n_headers[0]
 
     layout = [
         [
@@ -337,10 +331,7 @@ def layout_traders(data_n_headers, font_body, font_header):
 
 
 def layout_stats(data_n_headers, font_body, font_header):
-    if data_n_headers[0] == []:
-        values = ["" * 21]
-    else:
-        values = data_n_headers[0]
+    values = ["" * 21] if data_n_headers[0] == [] else data_n_headers[0]
 
     layout = [
         [
@@ -433,10 +424,7 @@ def layout_stats(data_n_headers, font_body, font_header):
 
 def layout_chan_msg(chn, data_n_headers, font_body, font_header):
     # Handle empy chan history
-    if data_n_headers[0] == []:
-        values = [["" * len(data_n_headers[1])]]
-    else:
-        values = data_n_headers[0]
+    values = [["" * len(data_n_headers[1])]] if data_n_headers[0] == [] else data_n_headers[0]
 
     layout = [
         [

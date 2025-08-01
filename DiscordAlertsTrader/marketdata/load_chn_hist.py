@@ -164,8 +164,7 @@ if re_download or not op.exists(fname_out):
         result = subprocess.run(
             command,
             shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
         if result.returncode == 0:
@@ -288,13 +287,12 @@ for ix, row in msg_hist.loc[:].iterrows():  # .loc[ix:].iterrows(): #
             (tracker.portfolio["Symbol"] == order["Symbol"]) & (tracker.portfolio["isOpen"] == 1),
             "bid",
         ] = order["price_actual_bid"]
-    except:
-        print("No date match for", order["Symbol"], order["Date"])
+    except Exception as e:
+        print("No date match for", order["Symbol"], order["Date"], "Error:", e)
         continue
 
-    if order["action"] == "STC":
-        if resp == "STCwithout BTO":
-            print("STC without BTO", order["Symbol"], order["Date"])
+    if order["action"] == "STC" and resp == "STCwithout BTO":
+        print("STC without BTO", order["Symbol"], order["Date"])
 
 # tracker.portfolio['spread'] = 100*(tracker.portfolio['bid']-tracker.portfolio['Price-actual'])/tracker.portfolio['Price-actual']
 # tracker.portfolio = tracker.portfolio[tracker.portfolio['spread'].abs()<15]

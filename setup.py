@@ -5,8 +5,12 @@ from setuptools import find_packages, setup
 
 
 # Read requirements from requirements.txt
-with open("requirements.txt") as f:
+with open("requirements.txt", encoding="utf-8") as f:
     requirements = [str(req) for req in parse_requirements(f)]
+
+# Read long description
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 # get the version
 version = None
@@ -23,7 +27,7 @@ setup(
     author_email="adonays.nunes@gmail.com",
     description="Package for automating discord trade alerts in TDA or eTrade.",
     license="BSD (3-clause)",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
     download_url="https://github.com/AdoNunes/DiscordAlertsTrader",

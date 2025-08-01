@@ -8,14 +8,14 @@ import discord  # this is discord.py-self package not discord
 import pandas as pd
 from colorama import Fore, init
 
-
-logger = logging.getLogger(__name__)
-
 from DiscordAlertsTrader.alerts_tracker import AlertsTracker
 from DiscordAlertsTrader.alerts_trader import AlertsTrader
 from DiscordAlertsTrader.configurator import cfg, channel_ids
 from DiscordAlertsTrader.message_parser import parse_trade_alert
 from DiscordAlertsTrader.server_alert_formatting import server_formatting
+
+
+logger = logging.getLogger(__name__)
 
 
 try:
@@ -166,7 +166,7 @@ class DiscordBot(discord.Client):
     def load_data(self):
         self.chn_hist = {}
         self.chn_hist_fname = {}
-        for ch in self.channel_IDS.keys():
+        for ch in self.channel_IDS:
             dt_fname = f"{self.cfg['general']['data_dir']}/{ch}_message_history.csv"
             if not os.path.exists(dt_fname):
                 ch_dt = pd.DataFrame(columns=self.cfg["col_names"]["chan_hist"].split(","))
@@ -351,7 +351,7 @@ class DiscordBot(discord.Client):
             date_diff = abs(datetime.now() - order_date)
             logger.warning("time difference is %s", date_diff.total_seconds())
 
-            live_alert = True if date_diff.seconds < 90 else False
+            live_alert = date_diff.seconds < 90
             str_msg = pars
             if live_alert and self.bksession is not None and (order.get("price") is not None):
                 quote = self.trader.price_now(order["Symbol"], order["action"], pflag=1)

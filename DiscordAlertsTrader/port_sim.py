@@ -175,7 +175,7 @@ def port_cap_trades(
 
 def filter_data(
     data,
-    exclude={},
+    exclude=None,
     filt_author="",
     filt_date_frm="",
     filt_date_to="",
@@ -194,6 +194,8 @@ def filter_data(
     filt_hour_frm="",
     filt_hour_to="",
 ):
+    if exclude is None:
+        exclude = {}
     if len(exclude):
         for k, v in exclude.items():
             if k == "Canceled" and v and "BTO-Status" in data.columns:
@@ -266,7 +268,7 @@ def filter_data(
 
     arguments = [max_trade_val, min_con_val, max_u_qty, max_underlying, max_dte, min_dte]
     for i in range(len(arguments)):
-        if isinstance(arguments[i], (int, float)):
+        if isinstance(arguments[i], int | float):
             arguments[i] = arguments[i]
         elif isinstance(arguments[i], str) and arguments[i].isdigit():
             arguments[i] = eval(arguments[i])
@@ -528,19 +530,10 @@ def calc_roi(
     roi = []
     msk = ~quotes.isna()
     quotes = quotes[msk]
-    if last is None:
-        last = quotes
-    else:
-        last = last[msk]
-    if ask is None:
-        ask = quotes
-    else:
-        ask = ask[msk]
+    last = quotes if last is None else last[msk]
+    ask = quotes if ask is None else ask[msk]
 
-    if initial_prices is None:
-        initial_price = ask.iloc[0]
-    else:
-        initial_price = initial_prices
+    initial_price = ask.iloc[0] if initial_prices is None else initial_prices
     sl = initial_price * SL
     # average down
     ds_inf = []

@@ -92,14 +92,14 @@ def calculate_weighted_mean(row, sufix="Price"):
     if np.any(valid_indices):
         try:
             return np.average(prices[valid_indices], weights=uqtys[valid_indices])
-        except:
+        except Exception:
             return np.average(prices[valid_indices])
     else:
         return np.nan
 
 
 def get_portf_data(
-    exclude={},
+    exclude=None,
     port_filt_author="",
     port_filt_date_frm="",
     port_filt_date_to="",
@@ -109,15 +109,17 @@ def get_portf_data(
     port_exc_chn="",
     **kwargs,
 ):
+    if exclude is None:
+        exclude = {}
     fname_port = cfg["portfolio_names"]["portfolio_fname"]
     if not op.exists(fname_port):
         return [], []
     try:
         data = pd.read_csv(fname_port, sep=",")
-    except:
+    except Exception:
         try:
             data = pd.read_csv(fname_port, sep=",")
-        except:
+        except Exception:
             return [], []
     try:
         data = filter_data(
@@ -263,7 +265,7 @@ def get_portf_data(
 
 
 def get_tracker_data(
-    exclude={},
+    exclude=None,
     track_filt_author="",
     track_filt_date_frm="",
     track_filt_date_to="",
@@ -276,13 +278,15 @@ def get_tracker_data(
     track_dte_min="",
     **kwargs,
 ):
+    if exclude is None:
+        exclude = {}
     fname_port = cfg["portfolio_names"]["tracker_portfolio_name"]
     if not op.exists(fname_port):
         return [], []
 
     try:
         data = pd.read_csv(fname_port, sep=",")
-    except:
+    except Exception:
         return [[]], []
 
     try:
@@ -322,7 +326,7 @@ def get_tracker_data(
             data["Margin"] = data.apply(
                 lambda x: 100 * x["Price-actual"] * (max_margin / (20 * x["underlying"])), axis=1
             )
-        except:
+        except Exception:
             data["Margin"] = 0
     else:
         data["Margin"] = 0
@@ -394,7 +398,7 @@ def get_tracker_data(
 
 
 def get_stats_data(
-    exclude={},
+    exclude=None,
     stat_filt_author="",
     stat_filt_date_frm="",
     stat_filt_date_to="",
@@ -409,6 +413,8 @@ def get_stats_data(
     fname_port=None,
     **kwargs,
 ):
+    if exclude is None:
+        exclude = {}
     if fname_port is None:
         fname_port = cfg["portfolio_names"]["tracker_portfolio_name"]
     if not op.exists(fname_port):
@@ -490,7 +496,7 @@ def get_stats_data(
 
     result_td = pd.concat([result_td, agg_values_all, result_ch], axis=0, ignore_index=True)
     result_td.drop("all", axis=1, level=0, inplace=True)
-    new_cols = [k for k in result_td.columns.get_level_values(0)]
+    new_cols = list(result_td.columns.get_level_values(0))
     new_cols[-3] = "N Trades"
     new_cols[-2] = "Since"
     new_cols[-1] = "Last"
@@ -529,7 +535,7 @@ def get_live_quotes(portfolio, trader_port=False):
                 "ask": float(quote_lst[2].replace("\n", "").replace(" ", "")),
                 "bid": float(quote_lst[1].replace("\n", "").replace(" ", "")),
             }
-        except:
+        except (IndexError, ValueError):
             continue
 
     for sym in quotes_sym:
@@ -670,7 +676,7 @@ def compute_live_trader_port(trade, order):
     trade["PnL$-alert"] = stc_PnL_all_alert * bto_price_alert * mutipl * sold_tot
     trade["PnL$-actual"] = stc_PnL_all_curr * bto_price_actual * mutipl * sold_tot
 
-    if any([np.isinf(t) for t in trade if isinstance(t, float)]):
+    if any(np.isinf(t) for t in trade if isinstance(t, float)):
         print("inf", trade)
         trade = trade.replace([np.inf, -np.inf], 0)
     return trade
@@ -745,10 +751,7 @@ def get_pos(acc_inf):
             last = round(val / Qty, 2) / 100
 
         pnl_t = round(val - cost, 2)
-        if cost == 0:
-            pnl_p_t = 0
-        else:
-            pnl_p_t = round((val - cost) * 100 / cost, 2)
+        pnl_p_t = 0 if cost == 0 else round((val - cost) * 100 / cost, 2)
 
         pos_vals = [sym, last, price, pnl_p_t, pnl_t, Qty, val, cost]
         pos_tab.append(pos_vals)
@@ -772,7 +775,7 @@ def order_info_pars(ord_dic, ord_list):
     if price is None:
         price = ord_dic.get("stopPrice")
         stprice = None
-    price = f"{price}" if stprice == None else f"{price}/{stprice}"
+    price = f"{price}" if stprice is None else f"{price}/{stprice}"
 
     sing_ord.append(ord_dic["orderType"])
     sing_ord.append(price)

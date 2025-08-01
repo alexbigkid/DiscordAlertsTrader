@@ -82,7 +82,7 @@ def parse_trade_alert(msg, asset=None):
                 order, pars = make_order_exits(order, msg, pars, asset_type)
                 order["n_PTs"] = n_pts
                 order["PTs_Qty"] = pts_qty
-            except:
+            except Exception:
                 order["PT1"] = None
                 order["PT2"] = None
                 order["PT3"] = None
@@ -214,7 +214,7 @@ def set_exit_price_type(exit_price, order):
     elif rtio_stock > rtio_option:
         exit_price = exit_price
     else:
-        raise ("Not sure if price of option or stock")
+        raise ValueError("Not sure if price of option or stock")
     return exit_price
 
 
@@ -288,9 +288,8 @@ def parse_mark_option(msg):
         mark_inf = re_mark.search(msg)
         if mark_inf is None:
             return None
-    if mark_inf.groups()[-1].count(".") > 1:
-        if mark_inf.groups()[-1].startswith("."):
-            return float(mark_inf.groups()[-1][1:].replace(",", "."))
+    if mark_inf.groups()[-1].count(".") > 1 and mark_inf.groups()[-1].startswith("."):
+        return float(mark_inf.groups()[-1][1:].replace(",", "."))
     mark = float(mark_inf.groups()[-1].replace(",", "."))
     return mark
 
@@ -452,7 +451,7 @@ def parse_sell_ratio_amount(msg, asset):
         return round(eval(amnt_inf.groups()[0].replace(" of ", "/")), 2)
 
     partial = ["scaling out", "selling more", "trimming more off", "selling some more", "trim"]
-    if any([True if m in msg.lower() else False for m in partial]):
+    if any(m in msg.lower() for m in partial):
         return 0.25
 
     if "partial" in msg.lower():

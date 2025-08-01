@@ -5,6 +5,8 @@ Created on Sat Apr  3 18:18:43 2021
 @author: adonay
 """
 
+import builtins
+import contextlib
 import os
 import os.path as op
 import queue
@@ -46,7 +48,7 @@ def match_authors(author_str: str) -> str:
     if "#" in author_str:
         return author_str
     authors = []
-    for chn in channel_ids.keys():
+    for chn in channel_ids:
         at = pd.read_csv(op.join(cfg["general"]["data_dir"], f"{chn}_message_history.csv"))[
             "Author"
         ].unique()
@@ -55,10 +57,7 @@ def match_authors(author_str: str) -> str:
 
     authors += cfg["discord"]["authors_subscribed"].split(",")
     authors = [a for a in authors if author_str.lower() in a.lower()]
-    if len(authors) == 0 or len(authors) > 1:
-        author = author_str
-    else:
-        author = authors[0]
+    author = author_str if len(authors) == 0 or len(authors) > 1 else authors[0]
     return author
 
 
@@ -112,14 +111,13 @@ def get_live_quotes(symbol, tracker, max_delay=2):
             bid = ask
         ask = ask.strip().replace("\n", "")
         quote = [ask, bid]
-    except:
-        print("Error reading quote", symbol, quotes[-1])
+    except Exception as e:
+        print("Error reading quote", symbol, quotes[-1], "Error:", e)
         get_live = True
 
     timestamp = eval(timestamp)
-    if max_delay is not None:
-        if now - timestamp > max_delay:
-            get_live = True
+    if max_delay is not None and now - timestamp > max_delay:
+        get_live = True
 
     if get_live:
         quote = tracker.price_now(symbol, "both")
@@ -158,7 +156,7 @@ def quotes_plotting(symbol, trader=None, tracker=None):
                 & (pd.to_datetime(tt.portfolio["Date"]).dt.date == datetime.now().date())
             ]
             if len(tts):
-                for ix, row in tts.iterrows():
+                for _ix, row in tts.iterrows():
                     if (
                         str(tt.__class__)
                         == "<class 'DiscordAlertsTrader.alerts_tracker.AlertsTracker'>"
@@ -340,10 +338,8 @@ els = [
 ] + [f"{chn}_table" for chn in chns]
 els = els + ["_orders_", "_positions_"] if bksession is not None else els
 for el in els:
-    try:
+    with contextlib.suppress(builtins.BaseException):
         fit_table_elms(window.Element(el).Widget)
-    except:
-        pass
 
 for chn in chns:
     table = window[f"{chn}_table"].Widget.horizontalHeader()
@@ -408,10 +404,7 @@ def run_gui():
             if "_portfolio_" in event:
                 pix = values["_portfolio_"][0]
                 dt, hdr = gg.get_portf_data(port_exc, **values)
-                if len(dt) and len(dt) > pix:
-                    qty = dt[pix][hdr.index("filledQty")]
-                else:
-                    qty = ""
+                qty = dt[pix][hdr.index("filledQty")] if len(dt) and len(dt) > pix else ""
             else:
                 pix = values["_track_"][0]
                 dt, hdr = gg.get_tracker_data(track_exc, **values)
@@ -419,7 +412,7 @@ def run_gui():
             qty = qty if qty == "" else int(float(qty))
             try:
                 symb = dt[pix][hdr.index("Symbol")]
-            except:
+            except (IndexError, ValueError):
                 continue
             auth = match_authors(dt[pix][hdr.index("Trader")])
 
@@ -674,17 +667,13 @@ def run_gui():
                     any(a == author for a in auth_subs)
                     or cfg["discord"]["channelwise_subscription"].split(",") != [""]
                     and any(
-                        [
-                            c.strip() == chan
-                            for c in cfg["discord"]["channelwise_subscription"].split(",")
-                        ]
+                        c.strip() == chan
+                        for c in cfg["discord"]["channelwise_subscription"].split(",")
                     )
                     or cfg["discord"]["authorwise_subscription"].split(",") != [""]
                     and any(
-                        [
-                            c.strip() == author
-                            for c in cfg["discord"]["authorwise_subscription"].split(",")
-                        ]
+                        c.strip() == author
+                        for c in cfg["discord"]["authorwise_subscription"].split(",")
                     )
                 ):
                     subs_auth_msg = True

@@ -100,18 +100,12 @@ class urls:
         return f"{self.base_userfintech_url}/user/v1/verificationCode/checkCode"
 
     def get_security(self, username, account_type, region_code, event, time, url=0):
-        if url == 1:
-            url = "getPrivacyQuestion"
-        else:
-            url = "getSecurityQuestion"
+        url = "getPrivacyQuestion" if url == 1 else "getSecurityQuestion"
 
         return f"{self.base_user_url}/user/risk/{url}?account={username}&accountType={account_type}&regionId={region_code}&event={event}&v={time}"
 
     def next_security(self, username, account_type, region_code, event, time, url=0):
-        if url == 1:
-            url = "nextPrivacyQuestion"
-        else:
-            url = "nextSecurityQuestion"
+        url = "nextPrivacyQuestion" if url == 1 else "nextSecurityQuestion"
 
         return f"{self.base_user_url}/user/risk/{url}?account={username}&accountType={account_type}&regionId={region_code}&event={event}&v={time}"
 

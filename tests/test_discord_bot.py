@@ -6,17 +6,15 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pandas as pd
-
-
-# Suppress logging output during tests
-logging.getLogger('DiscordAlertsTrader.discord_bot').setLevel(logging.CRITICAL)
-
-
-sys.path.append(os.path.dirname(__file__))
 from mock_discord_message import make_message
 
 from DiscordAlertsTrader.configurator import cfg
 from DiscordAlertsTrader.discord_bot import DiscordBot
+
+
+# Suppress logging output during tests
+logging.getLogger("DiscordAlertsTrader.discord_bot").setLevel(logging.CRITICAL)
+sys.path.append(os.path.dirname(__file__))
 
 
 root_dir = os.path.abspath(os.path.dirname(__file__))

@@ -253,10 +253,7 @@ class TS(BaseBroker):
         if order["Legs"][0]["AssetType"] == "STOCKOPTION":
             symbol = self._convert_option_fromts(symbol)
 
-        if order.get("ConditionalOrders") is not None:
-            orderStrategyType = "OCO"
-        else:
-            orderStrategyType = "SINGLE"
+        orderStrategyType = "OCO" if order.get("ConditionalOrders") is not None else "SINGLE"
 
         status = order["StatusDescription"].upper()
         if status in ["RECEIVED", "SENT", "QUEUED"]:

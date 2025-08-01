@@ -387,7 +387,7 @@ class ThetaClientAPI:
             elif this_delta < delta:
                 mid -= 1
             else:
-                sss
+                break  # delta matches exactly
             if strike in st_done:
                 st_done.append(strike)
                 st_info.append((strike, this_delta))

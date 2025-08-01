@@ -250,7 +250,7 @@ def flint_formatting(message):
 
 def moneymotive_formatting(message, msg_date_ob):
     if message["content"] is None:
-        return alert
+        return None
     alert = message["content"]
 
     if "%" in alert:  # just status update
@@ -334,7 +334,7 @@ def diesel_formatting(message, msg_date_ob):
     if match:
         ticker, strike, otype, expDate, price = match.groups()
         if expDate is None:
-            bto = f"BTO {ticker} {strike.upper()}{otype[0]} 0DTE @{price}"
+            f"BTO {ticker} {strike.upper()}{otype[0]} 0DTE @{price}"
             alert = format_0dte_weeklies(alert, msg_date_ob, False)
         else:
             alert = f"BTO {ticker} {strike.upper()}{otype[0]} {expDate} @{price}"
@@ -410,10 +410,7 @@ def bear_formatting(message):
                     alert = f"{mb['title']}: {mb['description']}"
                     continue
             contract, exp_date, strike, otype = contract_match.groups()
-            if fill_match is not None:
-                price = float(fill_match.groups()[0])
-            else:
-                price = None
+            price = float(fill_match.groups()[0]) if fill_match is not None else None
             alert += f"BTO {contract} {strike}{otype.upper()} {exp_date} @{price} {mb['title']}"
 
         elif any(a in alert.lower() for a in ["trim", "closing", "full profit", "fully close"]):

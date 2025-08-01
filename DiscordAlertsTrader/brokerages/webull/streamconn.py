@@ -1,9 +1,11 @@
+import datetime
 import json
 import os
 import threading
 import time
 
 import paho.mqtt.client as mqtt
+from pytz import timezone
 
 from . import webull
 
@@ -236,7 +238,7 @@ if __name__ == "__main__":
             print(", tradeTime: ", data["tradeTime"])
         else:
             tradetime = data["deal"]["tradeTime"]
-            current_dt = datetime.today().astimezone(nyc)
+            current_dt = datetime.datetime.today().astimezone(nyc)
             ts = current_dt.replace(
                 hour=int(tradetime[:2]), minute=int(tradetime[3:5]), second=0, microsecond=0
             )

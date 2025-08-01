@@ -62,7 +62,7 @@ class TDA(BaseBroker):
                 order_info["childOrderStrategies"][0]["status"],
                 order_info["childOrderStrategies"][1]["status"],
             ]
-            if not order_status[0] == order_status[1]:
+            if order_status[0] != order_status[1]:
                 print(
                     f"OCO order status are different in ordID {order_id}: ",
                     f"{order_status[0]} vs {order_status[1]}, will try to get the filled",
@@ -76,7 +76,7 @@ class TDA(BaseBroker):
 
         # price might just be the set lim, but actual is in execution leg
 
-        if "orderActivityCollection" in order_info.keys():
+        if "orderActivityCollection" in order_info:
             prics = []
             for ind in order_info["orderActivityCollection"]:
                 prics.append([ind["quantity"], ind["executionLegs"][0]["price"]])
@@ -105,7 +105,7 @@ class TDA(BaseBroker):
         )
 
         for pos in acc_inf["securitiesAccount"]["positions"]:
-            long = True if pos["longQuantity"] > 0 else False
+            long = pos["longQuantity"] > 0
 
             pos_inf = {
                 "symbol": pos["instrument"]["symbol"],

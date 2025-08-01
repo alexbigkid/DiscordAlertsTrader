@@ -57,7 +57,7 @@ def update_port_cols():
             if col not in trader.columns:
                 trader[col] = None
         for col in [
-            "STC%d-%s" % (i, v)
+            f"STC{i}-{v}"
             for v in [
                 "alerted",
                 "Status",
@@ -104,7 +104,7 @@ else:
         (section, k)
         for section in cfg_example.sections()
         if cfg.has_section(section)
-        for k in cfg_example[section].keys()
+        for k in cfg_example[section]
         if not cfg.has_option(section, k)
     ]
     if len(missing_items):
@@ -163,7 +163,7 @@ portfolio_cols = ",".join(
         "BTO-avg-Status",
     ]
     + [
-        "STC%d-%s" % (i, v)
+        f"STC{i}-{v}"
         for v in [
             "alerted",
             "Status",
