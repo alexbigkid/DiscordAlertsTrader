@@ -2094,7 +2094,11 @@ class AlertsTrader:
                     break
 
                 # Check that is below actual price
-                if trade["Type"] == "BTO" and order.get("SL") is not None and isinstance(order.get("SL"), int | float):
+                if (
+                    trade["Type"] == "BTO"
+                    and order.get("SL") is not None
+                    and isinstance(order.get("SL"), int | float)
+                ):
                     order["action"] = trade["Type"].replace("STO", "BTC").replace("BTO", "STC")
                     order = self.SL_below_market(order)
                     order = self.round_order_price(order, trade)

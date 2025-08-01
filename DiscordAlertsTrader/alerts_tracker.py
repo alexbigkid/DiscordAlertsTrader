@@ -79,7 +79,11 @@ class AlertsTracker:
             order["Qty"] = 1
 
         order["Actual Cost"] = order.get("price_actual", None)
-        if order["action"] in ["BTO", "STC", "STO", "BTC"] and live_alert and order.get("Actual Cost", "None") == "None":
+        if (
+            order["action"] in ["BTO", "STC", "STO", "BTC"]
+            and live_alert
+            and order.get("Actual Cost", "None") == "None"
+        ):
             order["Actual Cost"] = self.price_now(order["Symbol"], order["action"])
 
         if (open_trade is None or self.do_avg is False) and order["action"] in ["BTO", "STO"]:
